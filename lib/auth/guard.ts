@@ -3,6 +3,8 @@ import type { User } from "@supabase/supabase-js";
 
 import { getSupabaseServerClient } from "@/lib/supabase";
 
+import { syncUserFromAuth } from "./sync-user";
+
 export async function getCurrentUser(): Promise<User | null> {
   const supabase = await getSupabaseServerClient();
   const {
@@ -21,6 +23,8 @@ export async function requireUser(nextPath = "/profile"): Promise<User> {
   if (!user) {
     redirect(`/login?next=${encodeURIComponent(nextPath)}`);
   }
+
+  await syncUserFromAuth(user);
 
   return user;
 }

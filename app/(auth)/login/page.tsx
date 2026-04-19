@@ -3,17 +3,19 @@ import Link from "next/link";
 import { loginWithEmailAction } from "@/lib/auth/actions";
 
 interface LoginPageProps {
-  searchParams?: {
+  searchParams?: Promise<{
     error?: string;
     message?: string;
     next?: string;
-  };
+  }>;
 }
 
-export default function LoginPage({ searchParams }: LoginPageProps) {
-  const error = searchParams?.error;
-  const message = searchParams?.message;
-  const next = searchParams?.next ?? "/profile";
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+
+  const error = resolvedSearchParams?.error;
+  const message = resolvedSearchParams?.message;
+  const next = resolvedSearchParams?.next ?? "/profile";
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">

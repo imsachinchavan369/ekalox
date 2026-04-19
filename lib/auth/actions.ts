@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 
 import { getSupabaseServerClient } from "@/lib/supabase";
 
+import { syncCurrentAuthenticatedUser } from "./sync-user";
+
 function normalize(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -18,13 +20,18 @@ export async function signUpWithEmailAction(formData: FormData) {
 
   const supabase = await getSupabaseServerClient();
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
   });
 
   if (error) {
     redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (data.session) {
+    await syncCurrentAuthenticatedUser();
+    redirect("/profile");
   }
 
   redirect("/login?message=Account+created.+Please+log+in");
@@ -49,6 +56,8 @@ export async function loginWithEmailAction(formData: FormData) {
   if (error) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
+
+  await syncCurrentAuthenticatedUser();
 
   redirect(next);
 }
