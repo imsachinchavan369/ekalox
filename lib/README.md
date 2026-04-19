@@ -1,8 +1,15 @@
 # lib/
 
-Shared code that is not tied to a single feature:
+Shared code that is not tied to a single feature.
 
-- API clients
-- utility functions
-- app constants
-- environment parsing helpers
+## Structure
+
+- `constants/`: shared app constants used across features
+- `utils/`: pure utility helpers that are safe to reuse anywhere
+
+Current shared foundation includes:
+
+- `constants/categories.ts`
+- `constants/cta.ts`
+- `utils/price.ts`
+- `utils/product-cta.ts`
