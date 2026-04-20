@@ -21,18 +21,61 @@ function slugify(value: string): string {
     .slice(0, 60);
 }
 
-export async function uploadProductFileAction(formData: FormData) {
-  const fileEntry = formData.get("file");
-  const titleInput = normalize(formData.get("title"));
+function toFile(value: FormDataEntryValue | null): File | null {
+  return value instanceof File && value.size > 0 ? value : null;
+}
 
-  if (!(fileEntry instanceof File) || fileEntry.size <= 0) {
-    redirect("/upload?error=Please+select+a+file");
+function toPriceCents(value: string, isFree: boolean): number {
+  if (isFree) {
+    return 0;
   }
 
-  const file = fileEntry;
+  const parsed = Number(value);
 
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    redirect("/upload?error=File+is+too+large.+Max+size+is+50MB");
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return -1;
+  }
+
+  return Math.round(parsed * 100);
+}
+
+export async function uploadProductFileAction(formData: FormData) {
+  const titleInput = normalize(formData.get("title"));
+  const caption = normalize(formData.get("caption"));
+  const productType = normalize(formData.get("productType"));
+  const isFree = productType !== "paid";
+  const priceInput = normalize(formData.get("price"));
+
+  const reelVideo = toFile(formData.get("reelVideo"));
+  const downloadFile = toFile(formData.get("downloadFile"));
+  const thumbnailFile = toFile(formData.get("thumbnail"));
+
+  if (!titleInput) {
+    redirect("/upload?error=Product+title+is+required");
+  }
+
+  if (!reelVideo) {
+    redirect("/upload?error=Please+select+a+reel+video");
+  }
+
+  const reelVideoFile = reelVideo as File;
+
+  if (reelVideoFile.size > MAX_FILE_SIZE_BYTES) {
+    redirect("/upload?error=Reel+video+is+too+large.+Max+size+is+50MB");
+  }
+
+  if (downloadFile && downloadFile.size > MAX_FILE_SIZE_BYTES) {
+    redirect("/upload?error=Downloadable+file+is+too+large.+Max+size+is+50MB");
+  }
+
+  if (thumbnailFile && thumbnailFile.size > MAX_FILE_SIZE_BYTES) {
+    redirect("/upload?error=Thumbnail+is+too+large.+Max+size+is+50MB");
+  }
+
+  const priceCents = toPriceCents(priceInput, isFree);
+
+  if (priceCents < 0) {
+    redirect("/upload?error=Paid+products+must+have+a+price+greater+than+0");
   }
 
   const bucket = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
@@ -51,17 +94,49 @@ export async function uploadProductFileAction(formData: FormData) {
     redirect("/login?error=Please+log+in+again");
   }
 
-  const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filePath = `${user.id}/${Date.now()}-${randomUUID()}-${safeFileName}`;
+  const reelVideoPath = `${user.id}/reels/${Date.now()}-${randomUUID()}-${reelVideoFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const downloadFilePath = downloadFile
+    ? `${user.id}/downloads/${Date.now()}-${randomUUID()}-${downloadFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`
+    : null;
+  const thumbnailPath = thumbnailFile
+    ? `${user.id}/thumbnails/${Date.now()}-${randomUUID()}-${thumbnailFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`
+    : null;
 
-  const { error: storageError } = await supabase.storage.from(bucket).upload(filePath, file, {
+  const { error: reelUploadError } = await supabase.storage.from(bucket).upload(reelVideoPath, reelVideoFile, {
     cacheControl: "3600",
     upsert: false,
-    contentType: file.type || "application/octet-stream",
+    contentType: reelVideoFile.type || "video/mp4",
   });
 
-  if (storageError) {
-    redirect(`/upload?error=${encodeURIComponent(storageError.message)}`);
+  if (reelUploadError) {
+    redirect(`/upload?error=${encodeURIComponent(reelUploadError.message)}`);
+  }
+
+  if (downloadFile && downloadFilePath) {
+    const { error: downloadUploadError } = await supabase
+      .storage
+      .from(bucket)
+      .upload(downloadFilePath, downloadFile, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: downloadFile.type || "application/octet-stream",
+      });
+
+    if (downloadUploadError) {
+      redirect(`/upload?error=${encodeURIComponent(downloadUploadError.message)}`);
+    }
+  }
+
+  if (thumbnailFile && thumbnailPath) {
+    const { error: thumbnailUploadError } = await supabase.storage.from(bucket).upload(thumbnailPath, thumbnailFile, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: thumbnailFile.type || "image/jpeg",
+    });
+
+    if (thumbnailUploadError) {
+      redirect(`/upload?error=${encodeURIComponent(thumbnailUploadError.message)}`);
+    }
   }
 
   const { data: creatorProfile, error: creatorProfileError } = await supabase
@@ -74,20 +149,19 @@ export async function uploadProductFileAction(formData: FormData) {
     redirect("/upload?error=Creator+profile+not+found");
   }
 
-  const baseTitle = titleInput || file.name.replace(/\.[^/.]+$/, "") || "Untitled reel";
-  const slug = `${slugify(baseTitle) || "reel"}-${Date.now()}`;
+  const slug = `${slugify(titleInput) || "reel-product"}-${Date.now()}`;
 
   const { data: product, error: productError } = await supabase
     .from("products")
     .insert({
       creator_profile_id: creatorProfile.id,
-      title: baseTitle,
+      title: titleInput,
       slug,
-      description: "Reel-first product listing",
+      description: caption || "Reel-first product listing",
       category: "video",
       status: "draft",
-      cta_type: "free",
-      price_cents: 0,
+      cta_type: isFree ? "free" : "buy",
+      price_cents: priceCents,
       currency_code: "USD",
     })
     .select("id")
@@ -100,13 +174,28 @@ export async function uploadProductFileAction(formData: FormData) {
   const { error: reelError } = await supabase.from("product_reels").insert({
     product_id: product.id,
     creator_user_id: user.id,
-    reel_video_path: filePath,
-    caption: baseTitle,
+    reel_video_path: reelVideoPath,
+    thumbnail_path: thumbnailPath,
+    caption: caption || titleInput,
   });
 
   if (reelError) {
     redirect(`/upload?error=${encodeURIComponent(reelError.message)}`);
   }
 
-  redirect(`/upload?success=1&file=${encodeURIComponent(baseTitle)}`);
+  if (downloadFile && downloadFilePath) {
+    const { error: fileError } = await supabase.from("product_download_files").insert({
+      product_id: product.id,
+      creator_user_id: user.id,
+      storage_path: downloadFilePath,
+      original_name: downloadFile.name,
+      mime_type: downloadFile.type || null,
+    });
+
+    if (fileError) {
+      redirect(`/upload?error=${encodeURIComponent(fileError.message)}`);
+    }
+  }
+
+  redirect(`/upload?success=1&product=${encodeURIComponent(titleInput)}`);
 }
