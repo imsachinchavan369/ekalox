@@ -3,15 +3,17 @@ import Link from "next/link";
 import { signUpWithEmailAction } from "@/lib/auth/actions";
 
 interface SignupPageProps {
-  searchParams?: {
+  searchParams?: Promise<{
     error?: string;
     message?: string;
-  };
+  }>;
 }
 
-export default function SignupPage({ searchParams }: SignupPageProps) {
-  const error = searchParams?.error;
-  const message = searchParams?.message;
+export default async function SignupPage({ searchParams }: SignupPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+
+  const error = resolvedSearchParams?.error;
+  const message = resolvedSearchParams?.message;
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
@@ -64,6 +66,17 @@ export default function SignupPage({ searchParams }: SignupPageProps) {
           >
             Sign up
           </button>
+
+          <p className="text-center text-xs leading-5 text-slate-500">
+            By continuing, you agree to our{" "}
+            <Link href="/legal/terms" className="font-semibold text-cyan-400 hover:text-cyan-300">
+              Terms
+            </Link>{" "}
+            &{" "}
+            <Link href="/legal/privacy" className="font-semibold text-cyan-400 hover:text-cyan-300">
+              Privacy Policy
+            </Link>
+          </p>
         </form>
 
         <p className="text-center text-sm text-slate-400">

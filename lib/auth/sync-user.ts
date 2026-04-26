@@ -1,10 +1,7 @@
 import type { User as AuthUser } from "@supabase/supabase-js";
 
-import { getSupabaseServerClient } from "@/lib/supabase";
-
-function normalizeUsernamePart(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 18);
-}
+import { createSafeGeneratedUsername } from "@/lib/auth/username";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 function getDisplayName(authUser: AuthUser): string {
   const fromMetadata =
@@ -22,8 +19,8 @@ function getDisplayName(authUser: AuthUser): string {
 }
 
 function getHandle(authUser: AuthUser): string {
-  const emailPrefix = normalizeUsernamePart(authUser.email?.split("@")[0] ?? "creator");
-  return `${emailPrefix || "creator"}_${authUser.id.slice(0, 8)}`;
+  const emailPrefix = authUser.email?.split("@")[0] ?? "creator";
+  return createSafeGeneratedUsername(emailPrefix, authUser.id);
 }
 
 /**

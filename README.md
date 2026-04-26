@@ -62,3 +62,9 @@ It intentionally includes only the essentials so you can grow the codebase witho
 - Minimal root configuration
 - Explicit placeholders for docs, db, and shared types
 - No premature abstractions or hidden magic
+
+## Auth Routes (Supabase)
+
+- Public: `/login`, `/signup`
+- Protected: `/upload`, `/profile`
+- Middleware + server guards are documented in `docs/auth-routing.md`.

@@ -58,6 +58,7 @@ $$;
 create table public.users (
   id uuid primary key default gen_random_uuid(),
   auth_user_id uuid unique,
+  role text not null default 'user' check (role in ('user', 'creator', 'admin')),
   username text unique,
   email text not null unique,
   display_name text not null,

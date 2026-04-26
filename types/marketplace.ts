@@ -1,11 +1,22 @@
 export type Category =
+  | "ai"
+  | "prompts"
+  | "music"
   | "design"
+  | "graphics"
   | "templates"
+  | "presets"
+  | "websites"
   | "code"
+  | "apps"
   | "audio"
   | "video"
   | "ebooks"
   | "courses"
+  | "marketing"
+  | "social_media"
+  | "productivity"
+  | "business"
   | "other";
 
 export type CTAType =

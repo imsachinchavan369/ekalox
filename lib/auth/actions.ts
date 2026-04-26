@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 
-import { getSupabaseServerClient } from "@/lib/supabase";
+import { clearAdminVerifiedCookie } from "@/lib/security/admin-session";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 import { syncCurrentAuthenticatedUser } from "./sync-user";
 
@@ -65,5 +66,6 @@ export async function loginWithEmailAction(formData: FormData) {
 export async function logoutAction() {
   const supabase = await getSupabaseServerClient();
   await supabase.auth.signOut();
+  await clearAdminVerifiedCookie();
   redirect("/login?message=You+have+been+logged+out");
 }

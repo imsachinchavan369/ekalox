@@ -1,61 +1,66 @@
 import { logoutAction } from "@/lib/auth/actions";
 import { requireUser } from "@/lib/auth/guard";
-import { getMyUploads } from "@/lib/uploads/queries";
+import { getMyUploads, getUserProfileOrders } from "@/lib/uploads/queries";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { ProfileDashboard } from "@/components/profile/ProfileDashboard";
+import { getSellerEarningsWallet } from "@/services/earnings";
+import { getUserNotifications } from "@/services/notifications";
+
+function getStringMetadata(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getIdentity(user: Awaited<ReturnType<typeof requireUser>>) {
+  const emailName = user.email?.split("@")[0] || "creator";
+  const displayName =
+    getStringMetadata(user.user_metadata?.display_name) ||
+    getStringMetadata(user.user_metadata?.full_name) ||
+    emailName;
+  const username =
+    getStringMetadata(user.user_metadata?.username) ||
+    getStringMetadata(user.user_metadata?.handle) ||
+    emailName.toLowerCase().replace(/[^a-z0-9_]/g, "");
+  const bio =
+    getStringMetadata(user.user_metadata?.bio).slice(0, 160) ||
+    "Reel-first digital products, demos, and downloads built for EKALOX buyers.";
+
+  return {
+    avatarUrl: getStringMetadata(user.user_metadata?.avatar_url) || null,
+    bio,
+    displayName,
+    email: user.email ?? null,
+    username,
+  };
+}
 
 export default async function ProfilePage() {
   const user = await requireUser("/profile");
-  const reels = await getMyUploads(user.id);
+  const supabase = await getSupabaseServerClient();
+  const [reels, orders, wallet, notifications] = await Promise.all([
+    getMyUploads(user.id),
+    getUserProfileOrders(user.id),
+    getSellerEarningsWallet(supabase, user.id),
+    getUserNotifications(supabase, user.id),
+  ]);
+  const creatorProfileId = reels[0]?.creatorProfileId;
+  const totalDownloads = reels.reduce((sum, reel) => sum + reel.downloadsCount, 0);
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-8 text-slate-100">
-      <section className="mx-auto w-full max-w-md space-y-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
-        <h1 className="text-xl font-semibold">Profile (Protected)</h1>
-        <p className="text-sm text-slate-400">Signed in as {user.email}</p>
-
-        <div className="space-y-2 border-t border-slate-800 pt-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-300">My Uploads</h2>
-
-          {reels.length === 0 ? (
-            <p className="text-sm text-slate-400">No reels yet. Upload your first reel from the Upload page.</p>
-          ) : (
-            <ul className="space-y-3">
-              {reels.map((reel) => (
-                <li key={reel.id} className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
-                  <p className="text-sm font-medium text-slate-100">{reel.title}</p>
-                  {reel.caption ? <p className="mt-1 text-xs text-slate-400">{reel.caption}</p> : null}
-                  <p className="text-xs text-slate-500">Uploaded: {new Date(reel.createdAt).toLocaleString()}</p>
-                  <p className="text-xs text-slate-500">CTA: {reel.ctaType === "free" ? "Free Download" : "Buy"}</p>
-
-                  {reel.reelUrl ? (
-                    <a
-                      href={reel.reelUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 inline-block text-xs text-cyan-400 hover:text-cyan-300"
-                    >
-                      Watch reel
-                    </a>
-                  ) : (
-                    <p className="mt-2 text-xs text-slate-500">Reel link unavailable right now.</p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="space-y-2 text-sm">
-          <a href="/upload" className="inline-block text-cyan-400 hover:text-cyan-300">
-            Go to upload
-          </a>
-
-          <form action={logoutAction}>
-            <button type="submit" className="text-rose-300 hover:text-rose-200">
-              Log out
-            </button>
-          </form>
-        </div>
-      </section>
+    <main className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
+      <ProfileDashboard
+        earnings={wallet.earnings}
+        identity={getIdentity(user)}
+        logoutAction={logoutAction}
+        notifications={notifications}
+        orders={orders}
+        products={reels}
+        stats={{
+          creatorProfileId,
+          productCount: reels.length,
+          totalDownloads,
+        }}
+        walletSummary={wallet.summary}
+      />
     </main>
   );
 }

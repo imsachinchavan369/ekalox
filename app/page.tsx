@@ -1,12 +1,14 @@
-export default function HomePage() {
+import { PublicReelFeed } from "@/components/public-reel-feed";
+import { getPublicReelFeed } from "@/lib/uploads/queries";
+
+export default async function HomePage() {
+  const feed = await getPublicReelFeed();
+
   return (
-    <main className="mx-auto min-h-screen max-w-3xl px-4 py-8 sm:px-6">
-      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">EKALOX</h1>
-        <p className="text-sm leading-6 text-slate-600">
-          Starter scaffold is ready. Build features inside <code>features/</code> and compose
-          screens through the App Router in <code>app/</code>.
-        </p>
+    <main className="h-[100dvh] overflow-hidden bg-black text-slate-100">
+      <section className="h-full">
+        <h1 className="sr-only">EKALOX public reel feed</h1>
+        <PublicReelFeed items={feed} />
       </section>
     </main>
   );

@@ -8,6 +8,5 @@ interface ProtectedLayoutProps {
 
 export default async function ProtectedLayout({ children }: ProtectedLayoutProps) {
   await requireUser();
-
   return <>{children}</>;
 }

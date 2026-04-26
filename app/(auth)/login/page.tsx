@@ -70,6 +70,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           >
             Continue
           </button>
+
+          <p className="text-center text-xs leading-5 text-slate-500">
+            By continuing, you agree to our{" "}
+            <Link href="/legal/terms" className="font-semibold text-cyan-400 hover:text-cyan-300">
+              Terms
+            </Link>{" "}
+            &{" "}
+            <Link href="/legal/privacy" className="font-semibold text-cyan-400 hover:text-cyan-300">
+              Privacy Policy
+            </Link>
+          </p>
         </form>
 
         <p className="text-center text-sm text-slate-400">
