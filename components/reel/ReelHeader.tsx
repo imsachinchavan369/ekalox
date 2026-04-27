@@ -50,7 +50,7 @@ export function ReelHeader({
 }: ReelHeaderProps) {
   return (
     <div className="pointer-events-auto absolute inset-x-0 top-0 flex items-center justify-between gap-3 px-3.5 pt-4 text-white">
-      <div className="flex min-w-0 items-center gap-2 py-1 pl-1 pr-2">
+      <div className="flex min-w-0 flex-1 items-center gap-2 py-1 pl-1 pr-2">
         <Link
           href={creatorHref}
           aria-label={`Open ${creatorName} profile`}
@@ -60,7 +60,7 @@ export function ReelHeader({
         </Link>
         <Link
           href={creatorHref}
-          className="min-w-0 max-w-[8.5rem] truncate text-sm font-semibold drop-shadow transition hover:text-cyan-100"
+          className="min-w-0 max-w-[7.5rem] truncate text-sm font-semibold drop-shadow transition hover:text-cyan-100 min-[390px]:max-w-[8.5rem]"
         >
           @{creatorName}
         </Link>
@@ -68,7 +68,7 @@ export function ReelHeader({
           type="button"
           onClick={onFollowToggle}
           title={`${followerCount} followers`}
-          className={`rounded-full border px-3 py-1 text-xs font-semibold drop-shadow transition active:scale-95 ${
+          className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold drop-shadow transition active:scale-95 ${
             isFollowing
               ? "border-cyan-200/45 bg-cyan-300/12 text-cyan-100"
               : "border-white/42 bg-transparent text-white hover:border-white/65 hover:text-cyan-100"

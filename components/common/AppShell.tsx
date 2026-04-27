@@ -30,7 +30,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <div className={isReels ? "h-[100dvh] overflow-hidden bg-black" : "min-h-[100dvh] bg-slate-950 pb-[calc(6.5rem+env(safe-area-inset-bottom))]"}>
+    <div className={isReels ? "h-[100dvh] overflow-hidden bg-black" : "min-h-[100dvh] bg-slate-950 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:pb-[calc(6.5rem+env(safe-area-inset-bottom))]"}>
       {children}
       {!isReels ? <Footer /> : null}
       <BottomNav />

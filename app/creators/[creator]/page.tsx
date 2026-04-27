@@ -19,7 +19,7 @@ export default async function CreatorProfilePage({ params }: CreatorProfilePageP
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100">
+    <main className="min-h-screen overflow-x-hidden bg-slate-950 px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-6 text-slate-100 sm:pb-6">
       <section className="mx-auto w-full max-w-md space-y-5">
         <CreatorStorefrontHeader
           creatorId={creator}

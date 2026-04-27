@@ -166,7 +166,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const starBreakdown = getStarBreakdown(reviews);
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
+    <main className="min-h-screen overflow-x-hidden bg-slate-950 px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-6 text-slate-100 sm:px-6 sm:pb-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl space-y-8">
         <section className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(22rem,0.95fr)] lg:items-start">
           <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-slate-900/72 shadow-2xl shadow-black/25">

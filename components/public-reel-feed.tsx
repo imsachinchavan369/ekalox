@@ -244,7 +244,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
 
   return (
     <>
-      <div className="pointer-events-auto fixed right-4 top-4 z-50 rounded-2xl border border-white/10 bg-black/55 px-3 py-2 shadow-lg backdrop-blur">
+      <div className="pointer-events-auto fixed right-3 top-[calc(4.25rem+env(safe-area-inset-top))] z-40 rounded-full border border-white/10 bg-black/62 px-2.5 py-2 shadow-lg backdrop-blur-md [&_label]:gap-1.5 [&_select]:h-8 [&_select]:rounded-full [&_span]:sr-only">
         <CurrencySelector
           id="reel-display-currency"
           label="Currency"
@@ -287,7 +287,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
 
               <div
                 className="relative h-full max-h-[100dvh] max-w-full overflow-hidden bg-black shadow-2xl shadow-black/60"
-                style={{ aspectRatio: "9 / 16", height: "min(100dvh, calc(100vw * 16 / 9))" }}
+                style={{ aspectRatio: "9 / 16", height: "min(100dvh, calc(100vw * 16 / 9))", maxWidth: "100vw" }}
               >
                 {item.reelUrl ? (
                   <ReelVideo
@@ -346,7 +346,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
                     reviewCount={formatCompactCount(item.reviewsCount)}
                     onShare={() => handleShare(item.productId)}
                   />
-                  <div className="pointer-events-auto absolute inset-x-0 bottom-[80px] space-y-0 px-4 pr-[4.75rem]">
+                  <div className="pointer-events-auto absolute inset-x-0 bottom-[calc(7.25rem+env(safe-area-inset-bottom))] space-y-1 px-4 pr-[4.75rem]">
                     <ReelMeta
                       averageRating={item.averageRating}
                       caption={item.caption}

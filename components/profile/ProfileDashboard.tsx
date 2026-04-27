@@ -50,7 +50,7 @@ export function ProfileDashboard({
 
   return (
     <>
-      <section className="mx-auto w-full max-w-6xl space-y-5">
+      <section className="mx-auto w-full max-w-6xl space-y-5 pb-4 sm:pb-0">
         <ProfileHeaderCard
           identity={currentIdentity}
           notifications={notifications}
@@ -59,13 +59,14 @@ export function ProfileDashboard({
         <ProfileStats {...stats} />
 
         <section className="rounded-[1.75rem] border border-white/10 bg-slate-900/70 p-3 shadow-xl shadow-black/18 sm:p-4">
-          <div className="flex gap-2 overflow-x-auto rounded-2xl bg-black/18 p-1">
+          <div className="-mx-1 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-0 gap-2 rounded-2xl bg-black/18 p-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`min-h-10 shrink-0 rounded-full px-4 text-xs font-black transition sm:text-sm ${
+                className={`min-h-10 shrink-0 whitespace-nowrap rounded-full px-4 text-xs font-black transition sm:text-sm ${
                   activeTab === tab.id
                     ? "bg-cyan-300 text-slate-950 shadow-lg shadow-cyan-950/20"
                     : "text-slate-300 hover:bg-white/8 hover:text-white"
@@ -74,9 +75,10 @@ export function ProfileDashboard({
                 {tab.label}
               </button>
             ))}
+            </div>
           </div>
 
-          <div className="mt-5">
+          <div className="mt-4">
             {activeTab === "products" ? <MyProductsSection products={products} /> : null}
             {activeTab === "orders" ? <MyOrdersSection orders={orders} /> : null}
             {activeTab === "wallet" ? <EarningsWalletSection earnings={earnings} summary={walletSummary} /> : null}

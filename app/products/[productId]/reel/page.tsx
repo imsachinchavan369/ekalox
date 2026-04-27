@@ -17,7 +17,7 @@ export default async function ProductReelPreviewPage({ params }: ProductReelPrev
   }
 
   return (
-    <main className="min-h-screen bg-black px-4 py-5 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-black px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-5 text-white sm:pb-5">
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-5xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-center">
         <div className="mx-auto w-full max-w-[26rem] overflow-hidden rounded-[1.75rem] border border-white/10 bg-slate-950 shadow-2xl shadow-black/50">
           <div className="aspect-[9/16] bg-black">

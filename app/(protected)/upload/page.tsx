@@ -19,8 +19,8 @@ export default async function UploadPage({ searchParams }: UploadPageProps) {
   const product = resolvedSearchParams?.product;
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100">
-      <section className="mx-auto w-full max-w-md space-y-5">
+    <main className="min-h-screen overflow-x-hidden bg-slate-950 px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-6 text-slate-100 sm:pb-6">
+      <section className="mx-auto w-full max-w-md space-y-5 pb-4 sm:pb-0">
         <header className="space-y-2 rounded-[1.75rem] border border-white/10 bg-slate-900/78 p-5 shadow-xl shadow-black/20">
           <p className="text-xs uppercase tracking-[0.18em] text-cyan-300">Creator Studio</p>
           <h1 className="text-2xl font-black text-white">Create reel product</h1>

@@ -97,7 +97,7 @@ function ReelDescription({ caption, productId }: { caption: string; productId: s
     <Link
       ref={containerRef}
       href={`/products/${productId}`}
-      className="relative mb-1.5 flex max-w-[80%] items-center overflow-hidden whitespace-nowrap text-sm font-medium leading-5 text-white/85 transition hover:text-white"
+      className="relative mb-1.5 flex max-w-full items-center overflow-hidden whitespace-nowrap text-sm font-medium leading-5 text-white/85 transition hover:text-white"
     >
       <span ref={measureRef} className="pointer-events-none absolute invisible whitespace-nowrap">
         {caption}
@@ -115,7 +115,7 @@ export function ReelMeta({ averageRating, caption, downloadsCount, productId, ra
 
   return (
     <div>
-      <h2 className="mb-1 line-clamp-2 text-[22px] font-bold leading-[1.08] text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.9)]">
+      <h2 className="mb-1 line-clamp-2 text-[20px] font-bold leading-[1.08] text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.9)] min-[390px]:text-[22px]">
         {title}
       </h2>
       {caption ? <ReelDescription caption={caption} productId={productId} /> : null}

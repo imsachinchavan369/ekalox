@@ -15,7 +15,7 @@ export function ReelContainer({ children, containerRef }: ReelContainerProps) {
   return (
     <ul
       ref={containerRef}
-      className="h-[100dvh] snap-y snap-mandatory overflow-y-auto overscroll-contain bg-black"
+      className="h-[100dvh] w-full max-w-full snap-y snap-mandatory overflow-x-hidden overflow-y-auto overscroll-contain bg-black"
     >
       {children}
     </ul>
@@ -27,7 +27,7 @@ export function ReelSlide({ children, productId, slideRef }: ReelSlideProps) {
     <li
       ref={slideRef}
       data-product-id={productId}
-      className="flex h-[100dvh] snap-start snap-always items-center justify-center bg-black"
+      className="flex h-[100dvh] w-full max-w-full snap-start snap-always items-center justify-center overflow-hidden bg-black"
     >
       {children}
     </li>

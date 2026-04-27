@@ -46,7 +46,7 @@ export default async function ProfilePage() {
   const totalDownloads = reels.reduce((sum, reel) => sum + reel.downloadsCount, 0);
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
+    <main className="min-h-screen overflow-x-hidden bg-slate-950 px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-6 text-slate-100 sm:px-6 sm:pb-6 lg:px-8">
       <ProfileDashboard
         earnings={wallet.earnings}
         identity={getIdentity(user)}

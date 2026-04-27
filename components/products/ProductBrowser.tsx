@@ -89,7 +89,7 @@ export function ProductBrowser({ products }: ProductBrowserProps) {
   }, [products, query, selectedCategory]);
 
   return (
-    <section className="mx-auto w-full max-w-7xl space-y-5 pb-6">
+    <section className="mx-auto w-full max-w-7xl space-y-5 pb-4 sm:pb-6">
       <header className="space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
@@ -151,7 +151,7 @@ export function ProductBrowser({ products }: ProductBrowserProps) {
           No products match this search.
         </div>
       ) : (
-        <ul className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">
+        <ul className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">
           {filteredProducts.map((product) => (
             <ProductCard key={product.productId} displayCurrency={displayCurrency} product={product} />
           ))}

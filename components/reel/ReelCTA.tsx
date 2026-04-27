@@ -14,7 +14,7 @@ export function ReelCTA({ ctaType, currencyCode, priceAmount, priceCents, produc
     <div className="pointer-events-auto flex items-center justify-between gap-3">
       <ProductPrice
         amount={priceAmount ?? (priceCents ?? 0) / 100}
-        className="min-w-0 text-base font-semibold text-white"
+        className="min-w-0 truncate text-base font-semibold text-white"
         ctaType={ctaType}
         currency={currencyCode || "INR"}
       />

@@ -80,7 +80,7 @@ export function ProductCard({ displayCurrency, product }: ProductCardProps) {
           <div className="mt-auto flex items-center justify-between gap-2 border-t border-white/10 pt-3">
             <ProductPrice
               amount={product.priceAmount}
-              className="min-w-0 truncate text-sm font-black text-white"
+              className="min-w-0 flex-1 truncate text-sm font-black text-white"
               ctaType={product.ctaType}
               currency={product.priceCurrency}
               displayCurrency={displayCurrency}
