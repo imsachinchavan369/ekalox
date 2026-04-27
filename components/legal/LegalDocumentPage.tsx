@@ -1,4 +1,5 @@
 import type { LegalDocument } from "./legalContent";
+import { EkaloxLogo } from "@/components/common/EkaloxLogo";
 
 type LegalDocumentPageProps = {
   document: LegalDocument;
@@ -9,7 +10,10 @@ export function LegalDocumentPage({ document }: LegalDocumentPageProps) {
     <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100 sm:px-6 lg:px-8">
       <article className="mx-auto w-full max-w-3xl">
         <header className="border-b border-white/10 pb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">EKALOX Legal</p>
+          <div className="flex items-center gap-3">
+            <EkaloxLogo />
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Legal</p>
+          </div>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{document.title}</h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">{document.description}</p>
           <p className="mt-5 text-sm text-slate-500">Last updated: {document.updatedAt}</p>

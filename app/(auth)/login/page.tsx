@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EkaloxLogo } from "@/components/common/EkaloxLogo";
 import { loginWithEmailAction } from "@/lib/auth/actions";
 
 interface LoginPageProps {
@@ -21,7 +22,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
       <div className="mx-auto w-full max-w-sm space-y-5 rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-xl">
         <header className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.18em] text-cyan-400">EKALOX</p>
+          <EkaloxLogo />
           <h1 className="text-2xl font-semibold">Log in</h1>
           <p className="text-sm text-slate-400">Access your creator and buyer dashboard.</p>
         </header>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { CurrencySelector } from "@/components/common/CurrencySelector";
+import { EkaloxLogo } from "@/components/common/EkaloxLogo";
 import type { ReelProductCard } from "@/lib/uploads/queries";
 import { DEFAULT_CURRENCY, normalizeCurrency, type SupportedCurrency } from "@/lib/utils/currency";
 
@@ -93,11 +94,8 @@ export function ProductBrowser({ products }: ProductBrowserProps) {
       <header className="space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
-            <div className="mb-2 flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-300/12 text-xs font-black text-cyan-100">
-                E
-              </span>
-              <span className="text-sm font-black tracking-[0.18em] text-cyan-200">EKALOX</span>
+            <div className="mb-2 flex items-center">
+              <EkaloxLogo />
             </div>
             <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">Products</h1>
             <p className="mt-1 max-w-xl text-sm font-medium text-slate-400">
