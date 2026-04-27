@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useCreatorFollows } from "@/hooks/use-creator-follows";
 import { useReelLikes } from "@/hooks/use-reel-likes";
-import { CurrencySelector } from "@/components/common/CurrencySelector";
 import { getCreatorHref } from "@/lib/reels/creator-routing";
 import { DEFAULT_CURRENCY, normalizeCurrency, type SupportedCurrency } from "@/lib/utils/currency";
 
@@ -244,14 +243,6 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
 
   return (
     <>
-      <div className="pointer-events-auto fixed right-3 top-[calc(4.25rem+env(safe-area-inset-top))] z-40 rounded-full border border-white/10 bg-black/62 px-2.5 py-2 shadow-lg backdrop-blur-md [&_label]:gap-1.5 [&_select]:h-8 [&_select]:rounded-full [&_span]:sr-only">
-        <CurrencySelector
-          id="reel-display-currency"
-          label="Currency"
-          value={displayCurrency}
-          onChange={handleDisplayCurrencyChange}
-        />
-      </div>
       <ReelContainer containerRef={feedRef}>
       {items.map((item) => {
         const isActive = item.productId === activeProductId;
@@ -346,7 +337,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
                     reviewCount={formatCompactCount(item.reviewsCount)}
                     onShare={() => handleShare(item.productId)}
                   />
-                  <div className="pointer-events-auto absolute inset-x-0 bottom-[calc(7.25rem+env(safe-area-inset-bottom))] space-y-1 px-4 pr-[4.75rem]">
+                  <div className="pointer-events-auto absolute inset-x-0 bottom-[calc(5.85rem+env(safe-area-inset-bottom))] space-y-2 px-4 pr-[4.9rem]">
                     <ReelMeta
                       averageRating={item.averageRating}
                       caption={item.caption}
@@ -358,6 +349,8 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
                     <ReelCTA
                       ctaType={item.ctaType}
                       currencyCode={item.priceCurrency ?? item.currencyCode}
+                      displayCurrency={displayCurrency}
+                      onDisplayCurrencyChange={handleDisplayCurrencyChange}
                       priceAmount={item.priceAmount}
                       priceCents={item.priceCents}
                       productId={item.productId}
