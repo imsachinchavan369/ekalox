@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -12,6 +12,7 @@ import {
   ALLOWED_REEL_MIME_PREFIXES,
   ALLOWED_THUMBNAIL_MIME_PREFIXES,
   MAX_FILE_SIZE_BYTES,
+  MAX_REEL_VIDEO_DURATION_SECONDS,
   UPLOAD_STORAGE_BUCKET,
   hasAllowedMimePrefix,
   type CreateProductMetadataRequest,
@@ -31,13 +32,63 @@ function toFile(value: FormDataEntryValue | null): File | null {
   return value instanceof File && value.size > 0 ? value : null;
 }
 
+const REEL_DURATION_ERROR = "Your reel must be 60 seconds or less. Please upload a shorter demo video.";
+
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    const objectUrl = URL.createObjectURL(file);
+
+    const cleanup = () => {
+      URL.revokeObjectURL(objectUrl);
+      video.removeAttribute("src");
+      video.load();
+    };
+
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const duration = video.duration;
+      cleanup();
+      Number.isFinite(duration) ? resolve(duration) : reject(new Error("Invalid video duration"));
+    };
+    video.onerror = () => {
+      cleanup();
+      reject(new Error("Could not read video duration"));
+    };
+    video.src = objectUrl;
+  });
+}
+
 export function UploadProductForm({ initialSuccess, initialError, initialProduct }: UploadProductFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [priceCurrency, setPriceCurrency] = useState(DEFAULT_CURRENCY);
   const [priceInput, setPriceInput] = useState("");
   const [productType, setProductType] = useState<"free" | "paid">("free");
+  const [reelVideoError, setReelVideoError] = useState("");
   const [uploadStatus, setUploadStatus] = useState("");
+
+  const handleReelVideoChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0] ?? null;
+    setReelVideoError("");
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const duration = await getVideoDuration(file);
+
+      if (duration > MAX_REEL_VIDEO_DURATION_SECONDS) {
+        input.value = "";
+        setReelVideoError(REEL_DURATION_ERROR);
+      }
+    } catch {
+      input.value = "";
+      setReelVideoError("Could not read this video's duration. Please choose another video file.");
+    }
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,6 +141,18 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
 
       if (!hasAllowedMimePrefix(reelVideo.type || "", ALLOWED_REEL_MIME_PREFIXES)) {
         router.push("/upload?error=Reel+video+must+be+a+valid+video+file");
+        return;
+      }
+
+      const reelVideoDuration = await getVideoDuration(reelVideo).catch(() => null);
+
+      if (reelVideoDuration === null) {
+        setReelVideoError("Could not read this video's duration. Please choose another video file.");
+        return;
+      }
+
+      if (reelVideoDuration > MAX_REEL_VIDEO_DURATION_SECONDS) {
+        setReelVideoError(REEL_DURATION_ERROR);
         return;
       }
 
@@ -355,8 +418,13 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
             name="reelVideo"
             accept="video/*"
             required
+            onChange={(event) => void handleReelVideoChange(event)}
             className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 file:mr-3 file:rounded-md file:border-0 file:bg-cyan-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-950 hover:file:bg-cyan-400"
           />
+          <span className="block text-xs text-slate-500">Max reel length: 60 seconds</span>
+          {reelVideoError ? (
+            <span className="block text-xs font-semibold text-rose-300">{reelVideoError}</span>
+          ) : null}
         </label>
 
         <label className="block space-y-1 text-sm">

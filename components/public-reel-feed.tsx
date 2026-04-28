@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCreatorFollows } from "@/hooks/use-creator-follows";
 import { useReelLikes } from "@/hooks/use-reel-likes";
 import { getCreatorHref } from "@/lib/reels/creator-routing";
+import { rankReelsFeed } from "@/lib/reels/feedRanking";
+import { getRecentlySeenReelIds, rememberSeenReelId } from "@/lib/reels/seenReels";
 import { DEFAULT_CURRENCY, normalizeCurrency, type SupportedCurrency } from "@/lib/utils/currency";
 
 import { ReelActions } from "./reel/ReelActions";
@@ -28,7 +30,11 @@ export interface PublicReelFeedItem {
   priceCents?: number;
   currencyCode?: string;
   reelUrl: string | null;
+  createdAt?: string;
+  verificationStatus?: string;
   downloadsCount: number;
+  likesCount?: number;
+  viewsCount?: number;
   averageRating: number;
   ratingCount: number;
   reviewsCount: number;
@@ -70,7 +76,9 @@ function SoundFeedbackIcon({ isSoundOn, show }: { isSoundOn: boolean; show: bool
 }
 
 export function PublicReelFeed({ items }: PublicReelFeedProps) {
+  const [feedItems, setFeedItems] = useState(items);
   const [activeProductId, setActiveProductId] = useState<string | null>(items[0]?.productId ?? null);
+  const [hasRankedFeed, setHasRankedFeed] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState<SupportedCurrency>(DEFAULT_CURRENCY);
   const [isSoundOn, setIsSoundOn] = useState(true);
   const [pausedProductId, setPausedProductId] = useState<string | null>(null);
@@ -79,8 +87,8 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
   const [reviewProductId, setReviewProductId] = useState<string | null>(null);
   const [shareProductId, setShareProductId] = useState<string | null>(null);
 
-  const reelIds = useMemo(() => items.map((item) => item.productId), [items]);
-  const creatorProfileIds = useMemo(() => items.map((item) => item.creatorProfileId), [items]);
+  const reelIds = useMemo(() => feedItems.map((item) => item.productId), [feedItems]);
+  const creatorProfileIds = useMemo(() => feedItems.map((item) => item.creatorProfileId), [feedItems]);
   const { getLikeCount, isLiked, loginPrompt: likeLoginPrompt, toggleLike } = useReelLikes(reelIds);
   const {
     getFollowerCount,
@@ -98,6 +106,19 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
     setDisplayCurrency(normalizeCurrency(window.localStorage.getItem("ekalox-display-currency")));
   }, []);
 
+  useEffect(() => {
+    const rankedItems = rankReelsFeed(items, getRecentlySeenReelIds());
+    setFeedItems(rankedItems);
+    setActiveProductId(rankedItems[0]?.productId ?? null);
+    setHasRankedFeed(true);
+  }, [items]);
+
+  useEffect(() => {
+    if (activeProductId && hasRankedFeed) {
+      rememberSeenReelId(activeProductId);
+    }
+  }, [activeProductId, hasRankedFeed]);
+
   const handleDisplayCurrencyChange = (currency: SupportedCurrency) => {
     setDisplayCurrency(currency);
     window.localStorage.setItem("ekalox-display-currency", currency);
@@ -105,7 +126,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
   };
 
   useEffect(() => {
-    if (items.length === 0) {
+    if (feedItems.length === 0) {
       return;
     }
 
@@ -125,7 +146,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
         let bestId: string | null = null;
         let bestRatio = 0;
 
-        for (const item of items) {
+        for (const item of feedItems) {
           const ratio = visibleRatiosRef.current[item.productId] ?? 0;
           if (ratio > bestRatio) {
             bestRatio = ratio;
@@ -141,7 +162,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
       },
     );
 
-    for (const item of items) {
+    for (const item of feedItems) {
       const element = slideRefs.current[item.productId];
       if (element) {
         observer.observe(element);
@@ -149,7 +170,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
     }
 
     return () => observer.disconnect();
-  }, [items]);
+  }, [feedItems]);
 
   useEffect(() => {
     setPausedProductId(null);
@@ -168,7 +189,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
   }, [showSoundFeedback, isSoundOn]);
 
   useEffect(() => {
-    for (const item of items) {
+    for (const item of feedItems) {
       const video = videoRefs.current[item.productId];
       if (!video) {
         continue;
@@ -188,7 +209,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
         video.currentTime = 0;
       }
     }
-  }, [activeProductId, isSoundOn, items, pausedProductId]);
+  }, [activeProductId, isSoundOn, feedItems, pausedProductId]);
 
   const togglePlayForActive = (productId: string) => {
     if (productId !== activeProductId) {
@@ -233,7 +254,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
     void navigator.clipboard?.writeText(url);
   };
 
-  if (items.length === 0) {
+  if (feedItems.length === 0) {
     return (
       <div className="flex h-[100dvh] items-center justify-center bg-black px-4 text-center text-sm text-white/60">
         No reels yet
@@ -244,7 +265,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
   return (
     <>
       <ReelContainer containerRef={feedRef}>
-      {items.map((item) => {
+      {feedItems.map((item) => {
         const isActive = item.productId === activeProductId;
         const isPaused = isActive && pausedProductId === item.productId;
 
