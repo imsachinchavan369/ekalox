@@ -1,3 +1,5 @@
+export const RESERVED_USERNAMES = ["ekalox"] as const;
+
 export const PROTECTED_BRAND_IDENTITIES = ["ekalox", "ekalo"] as const;
 
 export const PROTECTED_AUTHORITY_IDENTITIES = [

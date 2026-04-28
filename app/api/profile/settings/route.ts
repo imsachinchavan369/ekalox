@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getUsernameValidationError } from "@/lib/auth/is-username-allowed";
+import { getUsernameValidationError, isReservedUsername } from "@/lib/auth/is-username-allowed";
+import { isAdminUser } from "@/lib/auth/require-admin";
 import { sanitizeUsername } from "@/lib/auth/username";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -41,12 +42,18 @@ export async function PATCH(request: NextRequest) {
     return jsonError("Settings could not be saved.", 400);
   }
 
-  const displayName = cleanText(body.displayName, 60);
+  let displayName = cleanText(body.displayName, 60);
   const username = sanitizeUsername(typeof body.username === "string" ? body.username : "");
   const bio = cleanText(body.bio, 160);
   const avatarUrl = cleanText(body.avatarUrl, 500);
   const password = cleanText(body.password, 128);
   const metadata = user.user_metadata ?? {};
+  const isAdmin = await isAdminUser(user.id);
+  const isReserved = isReservedUsername(username);
+
+  if (isReserved && isAdmin) {
+    displayName = "EKALOX";
+  }
 
   if (displayName.length < 2) {
     return jsonError("Display name must be at least 2 characters.", 400);
@@ -56,12 +63,40 @@ export async function PATCH(request: NextRequest) {
     return jsonError("Username must be at least 3 characters.", 400);
   }
 
-  const usernameValidationError = getUsernameValidationError(username);
+  const usernameValidationError = getUsernameValidationError(username, { isAdmin });
   if (usernameValidationError) {
     return jsonError(usernameValidationError, 400);
   }
 
-  if (username !== metadata.username && !canChangeUsername(metadata.username_changed_at)) {
+  if (isReserved && isAdmin) {
+    const [
+      { data: existingReservedUser, error: existingReservedUserError },
+      { data: existingReservedCreatorProfile, error: existingReservedCreatorProfileError },
+    ] = await Promise.all([
+      supabase
+        .from("users")
+        .select("id")
+        .eq("username", username)
+        .neq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("creator_profiles")
+        .select("id")
+        .eq("handle", username)
+        .neq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+
+    if (existingReservedUserError || existingReservedCreatorProfileError) {
+      return jsonError("Settings could not be saved.", 400);
+    }
+
+    if (existingReservedUser || existingReservedCreatorProfile) {
+      return jsonError("This official username is already in use.", 409);
+    }
+  }
+
+  if (username !== metadata.username && !(isReserved && isAdmin) && !canChangeUsername(metadata.username_changed_at)) {
     return jsonError("Username changes are limited. Please try again later.", 429);
   }
 
@@ -87,12 +122,20 @@ export async function PATCH(request: NextRequest) {
     return jsonError("Settings could not be saved.", 400);
   }
 
+  const creatorProfileUpdate = {
+    bio,
+    display_name: displayName,
+    handle: username,
+    username,
+    ...(isReserved && isAdmin ? { is_verified: true } : {}),
+  };
+
   await Promise.all([
     supabase
       .from("users")
       .update({ avatar_url: avatarUrl || null, display_name: displayName, username })
       .eq("id", user.id),
-    supabase.from("creator_profiles").update({ bio, handle: username }).eq("user_id", user.id),
+    supabase.from("creator_profiles").update(creatorProfileUpdate).eq("user_id", user.id),
   ]);
 
   return NextResponse.json({

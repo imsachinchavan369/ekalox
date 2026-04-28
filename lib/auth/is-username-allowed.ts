@@ -3,6 +3,7 @@ import {
   PROTECTED_AUTHORITY_MODIFIERS,
   PROTECTED_BRAND_IDENTITIES,
   PROTECTED_TRUST_IDENTITIES,
+  RESERVED_USERNAMES,
 } from "@/lib/constants/reserved-usernames";
 
 import {
@@ -13,6 +14,7 @@ import {
 import { isSuspiciouslySimilarToProtectedName } from "@/lib/auth/is-suspiciously-similar-to-protected-name";
 
 const protectedAuthoritySet = new Set<string>([...PROTECTED_AUTHORITY_IDENTITIES, ...PROTECTED_TRUST_IDENTITIES]);
+const reservedUsernameSet = new Set<string>(RESERVED_USERNAMES);
 const protectedExactSet = new Set<string>([
   ...PROTECTED_BRAND_IDENTITIES,
   ...PROTECTED_AUTHORITY_IDENTITIES,
@@ -70,11 +72,23 @@ function hasAuthorityImpersonation(rawUsername: string) {
   return false;
 }
 
-export function getUsernameValidationError(username: string) {
+interface UsernameValidationOptions {
+  isAdmin?: boolean;
+}
+
+export function isReservedUsername(username: string) {
+  return reservedUsernameSet.has(normalizeUsernameForSecurityCheck(username));
+}
+
+export function getUsernameValidationError(username: string, options: UsernameValidationOptions = {}) {
   const normalized = normalizeUsernameForSecurityCheck(username);
 
   if (!normalized || normalized.length < 3) {
     return "This username is not allowed. Please choose a different username.";
+  }
+
+  if (options.isAdmin) {
+    return null;
   }
 
   if (protectedExactSet.has(normalized)) {
@@ -94,6 +108,6 @@ export function getUsernameValidationError(username: string) {
   return null;
 }
 
-export function isUsernameAllowed(username: string) {
-  return getUsernameValidationError(username) === null;
+export function isUsernameAllowed(username: string, options: UsernameValidationOptions = {}) {
+  return getUsernameValidationError(username, options) === null;
 }

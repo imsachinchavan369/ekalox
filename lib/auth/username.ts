@@ -10,8 +10,8 @@ export function sanitizeUsername(value: string) {
     .slice(0, 24);
 }
 
-export function validateUsernameOrThrow(username: string) {
-  const error = getUsernameValidationError(username);
+export function validateUsernameOrThrow(username: string, options?: Parameters<typeof getUsernameValidationError>[1]) {
+  const error = getUsernameValidationError(username, options);
 
   if (error) {
     throw new Error(error);
