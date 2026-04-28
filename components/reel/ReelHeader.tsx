@@ -52,21 +52,21 @@ export function ReelHeader({
 }: ReelHeaderProps) {
   return (
     <>
-      <EkaloxLogo className="pointer-events-auto absolute left-3 top-[calc(0.75rem+env(safe-area-inset-top))] h-7 w-auto max-w-[110px] drop-shadow-[0_2px_10px_rgba(0,0,0,0.78)]" />
+      <EkaloxLogo className="pointer-events-auto absolute left-[18px] top-[calc(18px+env(safe-area-inset-top))] h-8 max-h-[34px] w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.78)]" />
 
       <button
         type="button"
         onClick={onSoundToggle}
         aria-label="Toggle reel audio"
         aria-pressed={isSoundOn}
-        className={`pointer-events-auto absolute right-3 top-[calc(0.75rem+env(safe-area-inset-top))] flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/40 drop-shadow-lg backdrop-blur-md transition hover:bg-black/50 active:scale-95 ${
+        className={`pointer-events-auto absolute right-[18px] top-[calc(18px+env(safe-area-inset-top))] flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/40 drop-shadow-lg backdrop-blur-md transition hover:bg-black/50 active:scale-95 ${
           isSoundOn ? "text-cyan-100" : "text-white/88"
         }`}
       >
         {isSoundOn ? <VolumeOnIcon /> : <VolumeOffIcon />}
       </button>
 
-      <div className="pointer-events-auto absolute left-3 right-14 top-[calc(3.35rem+env(safe-area-inset-top))] flex min-w-0 items-center gap-2 text-white">
+      <div className="pointer-events-auto absolute left-[18px] right-16 top-[calc(4rem+env(safe-area-inset-top))] flex min-w-0 items-center gap-2 text-white">
         <Link
           href={creatorHref}
           aria-label={`Open ${creatorName} profile`}

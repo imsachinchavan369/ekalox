@@ -28,7 +28,7 @@ interface ActionButtonProps {
 
 function ActionButton({ active, label, children, count, emphasis, href, tone = "brand", onClick }: ActionButtonProps) {
   const activeToneClass = tone === "like" ? "text-rose-400" : "text-cyan-100";
-  const className = `flex h-10 w-10 items-center justify-center rounded-full bg-black/25 backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-black/35 active:scale-95 ${
+  const className = `flex h-9 w-9 items-center justify-center rounded-full bg-black/25 backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-black/35 active:scale-95 ${
     active
       ? emphasis
         ? "bg-cyan-300/20 text-cyan-100 shadow-[0_0_22px_rgba(103,232,249,0.28)]"
@@ -58,7 +58,7 @@ function ActionButton({ active, label, children, count, emphasis, href, tone = "
 
 function HeartIcon({ filled }: { filled: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" className={`h-6 w-6 ${filled ? "scale-110" : ""} transition-transform`} aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={`h-5 w-5 ${filled ? "scale-110" : ""} transition-transform`} aria-hidden="true">
       <path
         d="M12 20s-7-4.4-7-10.2C5 6.8 6.9 5 9.3 5c1.4 0 2.4.7 2.7 1.3C12.3 5.7 13.3 5 14.7 5 17.1 5 19 6.8 19 9.8 19 15.6 12 20 12 20Z"
         fill={filled ? "currentColor" : "none"}
@@ -72,7 +72,7 @@ function HeartIcon({ filled }: { filled: boolean }) {
 
 function VerifiedReviewIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
       <path d="m12 3 2.2 1.8 2.8-.2.8 2.7 2.3 1.6-1.1 2.6.8 2.7-2.6 1.2-1.2 2.6-2.7-.8-2.6 1.1-1.6-2.3-2.7-.8.2-2.8L4 10l2.6-1.3.8-2.7 2.8.2L12 3Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" />
       <path d="m8.8 12 2.1 2.1 4.4-4.7" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
     </svg>
@@ -81,7 +81,7 @@ function VerifiedReviewIcon() {
 
 function ShareIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
       <path d="M8.5 12.7 15.5 16m0-8L8.5 11.3M18 8.5a2.5 2.5 0 1 0-2.5-2.5A2.5 2.5 0 0 0 18 8.5ZM6 14.5A2.5 2.5 0 1 0 3.5 12 2.5 2.5 0 0 0 6 14.5Zm12 5A2.5 2.5 0 1 0 15.5 17a2.5 2.5 0 0 0 2.5 2.5Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
     </svg>
   );
@@ -89,7 +89,7 @@ function ShareIcon() {
 
 function CartIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
       <path d="M4 5h2l1.5 9h8.8l1.7-6.5H7.1M9 19.5h.1m6.9 0h.1" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
     </svg>
   );
@@ -109,7 +109,7 @@ export function ReelActions({
   onShare,
 }: ReelActionsProps) {
   return (
-    <div className="pointer-events-auto absolute bottom-[120px] right-2.5 flex flex-col items-center gap-4">
+    <div className="pointer-events-auto absolute bottom-[150px] right-2.5 flex flex-col items-center gap-3.5">
       <ActionButton active={isLiked} label="Like product" count={likeCount} tone="like" onClick={onLike}>
         <HeartIcon filled={isLiked} />
       </ActionButton>
