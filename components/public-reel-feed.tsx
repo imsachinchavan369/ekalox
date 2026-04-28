@@ -263,18 +263,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
                 </div>
               ) : null}
 
-              {item.reelUrl ? (
-                <video
-                  src={item.reelUrl}
-                  className="absolute inset-0 h-full w-full scale-110 object-cover opacity-24 blur-2xl"
-                  muted
-                  playsInline
-                  preload="metadata"
-                  aria-hidden="true"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-black" />
-              )}
+              <div className="absolute inset-0 bg-black" />
 
               <div className="relative h-full w-full overflow-hidden bg-black">
                 {item.reelUrl ? (
