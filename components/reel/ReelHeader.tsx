@@ -51,9 +51,9 @@ export function ReelHeader({
   onSoundToggle,
 }: ReelHeaderProps) {
   return (
-    <div className="pointer-events-auto absolute inset-x-0 top-0 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] text-white sm:px-5">
-      <div className="flex items-center justify-between gap-3">
-        <EkaloxLogo className="h-6 w-auto max-w-[82px] drop-shadow-[0_2px_10px_rgba(0,0,0,0.78)] min-[390px]:h-7 min-[390px]:max-w-[92px]" />
+    <div className="pointer-events-auto absolute left-4 right-4 top-[calc(1rem+env(safe-area-inset-top))] text-white">
+      <div className="flex items-start justify-between gap-3">
+        <EkaloxLogo className="h-auto w-[110px] max-w-[110px] drop-shadow-[0_2px_10px_rgba(0,0,0,0.78)]" />
         <button
           type="button"
           onClick={onSoundToggle}
@@ -67,7 +67,7 @@ export function ReelHeader({
         </button>
       </div>
 
-      <div className="mt-3 flex min-w-0 items-center gap-2 rounded-full border border-white/[0.08] bg-black/24 py-1 pl-1 pr-2 shadow-[0_10px_28px_rgba(0,0,0,0.22)] backdrop-blur-md">
+      <div className="mt-4 flex min-w-0 items-center gap-2 rounded-full border border-white/[0.08] bg-black/24 py-1 pl-1 pr-2 shadow-[0_10px_28px_rgba(0,0,0,0.22)] backdrop-blur-md">
         <Link
           href={creatorHref}
           aria-label={`Open ${creatorName} profile`}

@@ -337,7 +337,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
                     reviewCount={formatCompactCount(item.reviewsCount)}
                     onShare={() => handleShare(item.productId)}
                   />
-                  <div className="pointer-events-auto absolute inset-x-0 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] mx-auto w-full max-w-[32rem] rounded-t-[1.65rem] border-t border-white/[0.08] bg-[linear-gradient(180deg,rgba(8,13,24,0.58)_0%,rgba(2,6,14,0.9)_62%,rgba(0,0,0,0.96)_100%)] px-5 pb-5 pt-5 shadow-[0_-18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl min-[390px]:bottom-[calc(6rem+env(safe-area-inset-bottom))]">
+                  <div className="pointer-events-auto absolute inset-x-0 bottom-0 px-5 pb-[calc(6.9rem+env(safe-area-inset-bottom))] pr-[5.25rem] pt-16 min-[390px]:pb-[calc(7.2rem+env(safe-area-inset-bottom))] min-[390px]:pr-[5.6rem]">
                     <ReelMeta
                       averageRating={item.averageRating}
                       caption={item.caption}
