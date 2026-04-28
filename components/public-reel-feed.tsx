@@ -8,7 +8,6 @@ import { getCreatorHref } from "@/lib/reels/creator-routing";
 import { rankReelsFeed } from "@/lib/reels/feedRanking";
 import {
   getLastFirstReelId,
-  getRecentlySeenReelIds,
   rememberLastFirstReelId,
   rememberSeenReelId,
 } from "@/lib/reels/seenReels";
@@ -107,22 +106,44 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
   const feedRef = useRef<HTMLUListElement | null>(null);
   const visibleRatiosRef = useRef<Record<string, number>>({});
 
+  const resetFeedScroll = () => {
+    window.scrollTo(0, 0);
+
+    if (feedRef.current) {
+      feedRef.current.scrollTop = 0;
+    }
+  };
+
   useEffect(() => {
     setDisplayCurrency(normalizeCurrency(window.localStorage.getItem("ekalox-display-currency")));
   }, []);
 
+  useEffect(() => {
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+
+    return () => {
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
+  }, []);
+
   useLayoutEffect(() => {
-    const rankedItems = rankReelsFeed(items, {
-      lastFirstReelId: getLastFirstReelId(),
-      recentlySeenReelIds: getRecentlySeenReelIds(),
-    });
+    const rankedItems = rankReelsFeed(items, getLastFirstReelId());
     setFeedItems(rankedItems);
     setActiveProductId(rankedItems[0]?.productId ?? null);
     if (rankedItems[0]) {
       rememberLastFirstReelId(rankedItems[0].productId);
     }
+    resetFeedScroll();
     setHasRankedFeed(true);
   }, [items]);
+
+  useLayoutEffect(() => {
+    resetFeedScroll();
+    const frameId = window.requestAnimationFrame(resetFeedScroll);
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [feedItems]);
 
   useEffect(() => {
     if (activeProductId && hasRankedFeed) {

@@ -2,11 +2,6 @@ export interface ReelsFeedRankableItem {
   productId: string;
 }
 
-export interface ReelsFeedRankingState {
-  lastFirstReelId: string | null;
-  recentlySeenReelIds: string[];
-}
-
 function shuffle<T>(items: T[]) {
   const shuffled = [...items];
 
@@ -40,7 +35,7 @@ function dedupeReels<T extends ReelsFeedRankableItem>(items: T[]) {
 
 export function rankReelsFeed<T extends ReelsFeedRankableItem>(
   items: T[],
-  { lastFirstReelId, recentlySeenReelIds }: ReelsFeedRankingState,
+  lastFirstReelId: string | null,
 ) {
   const dedupedItems = dedupeReels(items);
 
@@ -48,27 +43,13 @@ export function rankReelsFeed<T extends ReelsFeedRankableItem>(
     return dedupedItems;
   }
 
-  const recentlySeenSet = new Set(recentlySeenReelIds);
-  let firstCandidates = dedupedItems.filter((item) => (
-    item.productId !== lastFirstReelId && !recentlySeenSet.has(item.productId)
-  ));
-
-  if (firstCandidates.length === 0) {
-    firstCandidates = dedupedItems.filter((item) => item.productId !== lastFirstReelId);
-  }
-
+  let firstCandidates = dedupedItems.filter((item) => item.productId !== lastFirstReelId);
   if (firstCandidates.length === 0) {
     firstCandidates = dedupedItems;
   }
 
   const firstItem = randomItem(firstCandidates);
   const remainingItems = dedupedItems.filter((item) => item.productId !== firstItem.productId);
-  const unseenItems = remainingItems.filter((item) => !recentlySeenSet.has(item.productId));
-  const seenItems = remainingItems.filter((item) => recentlySeenSet.has(item.productId));
-
-  if (unseenItems.length > 0) {
-    return [firstItem, ...shuffle(unseenItems), ...shuffle(seenItems)];
-  }
 
   return [firstItem, ...shuffle(remainingItems)];
 }
