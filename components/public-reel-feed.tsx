@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { useCreatorFollows } from "@/hooks/use-creator-follows";
 import { useReelLikes } from "@/hooks/use-reel-likes";
 import { getCreatorHref } from "@/lib/reels/creator-routing";
 import { rankReelsFeed } from "@/lib/reels/feedRanking";
-import { getRecentlySeenReelIds, rememberSeenReelId } from "@/lib/reels/seenReels";
+import {
+  getLastFirstReelId,
+  getRecentlySeenReelIds,
+  rememberLastFirstReelId,
+  rememberSeenReelId,
+} from "@/lib/reels/seenReels";
 import { DEFAULT_CURRENCY, normalizeCurrency, type SupportedCurrency } from "@/lib/utils/currency";
 
 import { ReelActions } from "./reel/ReelActions";
@@ -106,10 +111,16 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
     setDisplayCurrency(normalizeCurrency(window.localStorage.getItem("ekalox-display-currency")));
   }, []);
 
-  useEffect(() => {
-    const rankedItems = rankReelsFeed(items, getRecentlySeenReelIds());
+  useLayoutEffect(() => {
+    const rankedItems = rankReelsFeed(items, {
+      lastFirstReelId: getLastFirstReelId(),
+      recentlySeenReelIds: getRecentlySeenReelIds(),
+    });
     setFeedItems(rankedItems);
     setActiveProductId(rankedItems[0]?.productId ?? null);
+    if (rankedItems[0]) {
+      rememberLastFirstReelId(rankedItems[0].productId);
+    }
     setHasRankedFeed(true);
   }, [items]);
 

@@ -1,22 +1,11 @@
 export interface ReelsFeedRankableItem {
   productId: string;
-  createdAt?: string;
-  downloadsCount?: number;
-  likesCount?: number;
-  viewsCount?: number;
-  ratingCount?: number;
-  reviewsCount?: number;
-  verificationStatus?: string;
-  verified?: boolean;
-  verifiedByEkalox?: boolean;
-  verified_by_ekalox?: boolean;
-  adminVerified?: boolean;
-  admin_verified?: boolean;
 }
 
-type BucketName = "new" | "popular" | "verified";
-
-const MIX_SEQUENCE: BucketName[] = ["new", "popular", "new", "popular", "verified"];
+export interface ReelsFeedRankingState {
+  lastFirstReelId: string | null;
+  recentlySeenReelIds: string[];
+}
 
 function shuffle<T>(items: T[]) {
   const shuffled = [...items];
@@ -29,118 +18,57 @@ function shuffle<T>(items: T[]) {
   return shuffled;
 }
 
-function getCreatedTime(item: ReelsFeedRankableItem) {
-  const time = item.createdAt ? new Date(item.createdAt).getTime() : 0;
-  return Number.isFinite(time) ? time : 0;
+function randomItem<T>(items: T[]) {
+  return items[Math.floor(Math.random() * items.length)];
 }
 
-function getPopularityScore(item: ReelsFeedRankableItem) {
-  return (
-    Number(item.viewsCount ?? 0) * 3 +
-    Number(item.downloadsCount ?? 0) * 2 +
-    Number(item.likesCount ?? 0) * 2 +
-    Number(item.reviewsCount ?? item.ratingCount ?? 0)
-  );
+function dedupeReels<T extends ReelsFeedRankableItem>(items: T[]) {
+  const seenIds = new Set<string>();
+  const dedupedItems: T[] = [];
+
+  for (const item of items) {
+    if (seenIds.has(item.productId)) {
+      continue;
+    }
+
+    seenIds.add(item.productId);
+    dedupedItems.push(item);
+  }
+
+  return dedupedItems;
 }
 
-function isVerifiedItem(item: ReelsFeedRankableItem) {
-  const status = item.verificationStatus?.toLowerCase();
-
-  return Boolean(
-    item.verified ||
-      item.verifiedByEkalox ||
-      item.verified_by_ekalox ||
-      item.adminVerified ||
-      item.admin_verified ||
-      status === "verified" ||
-      status === "trusted" ||
-      status === "admin_verified",
-  );
-}
-
-function takeNext<T extends ReelsFeedRankableItem>(
-  bucket: T[],
-  usedIds: Set<string>,
+export function rankReelsFeed<T extends ReelsFeedRankableItem>(
+  items: T[],
+  { lastFirstReelId, recentlySeenReelIds }: ReelsFeedRankingState,
 ) {
-  while (bucket.length > 0) {
-    const next = bucket.shift();
+  const dedupedItems = dedupeReels(items);
 
-    if (next && !usedIds.has(next.productId)) {
-      usedIds.add(next.productId);
-      return next;
-    }
+  if (dedupedItems.length <= 1) {
+    return dedupedItems;
   }
 
-  return null;
-}
+  const recentlySeenSet = new Set(recentlySeenReelIds);
+  let firstCandidates = dedupedItems.filter((item) => (
+    item.productId !== lastFirstReelId && !recentlySeenSet.has(item.productId)
+  ));
 
-function buildMixedOrder<T extends ReelsFeedRankableItem>(items: T[]) {
-  const usedIds = new Set<string>();
-  const newestCount = Math.max(1, Math.ceil(items.length * 0.4));
-  const popularCount = Math.max(1, Math.ceil(items.length * 0.4));
-  const newest = shuffle(
-    [...items]
-      .sort((first, second) => getCreatedTime(second) - getCreatedTime(first))
-      .slice(0, newestCount),
-  );
-  const popular = shuffle(
-    [...items]
-      .sort((first, second) => getPopularityScore(second) - getPopularityScore(first))
-      .slice(0, popularCount),
-  );
-  const verified = shuffle(items.filter(isVerifiedItem));
-  const fallback = shuffle(items);
-  const buckets: Record<BucketName, T[]> = { new: newest, popular, verified };
-  const ordered: T[] = [];
-
-  while (ordered.length < items.length) {
-    let addedInCycle = false;
-
-    for (const bucketName of MIX_SEQUENCE) {
-      const next = takeNext(buckets[bucketName], usedIds);
-
-      if (next) {
-        ordered.push(next);
-        addedInCycle = true;
-      }
-
-      if (ordered.length >= items.length) {
-        break;
-      }
-    }
-
-    if (!addedInCycle) {
-      const next = takeNext(fallback, usedIds);
-
-      if (!next) {
-        break;
-      }
-
-      ordered.push(next);
-    }
+  if (firstCandidates.length === 0) {
+    firstCandidates = dedupedItems.filter((item) => item.productId !== lastFirstReelId);
   }
 
-  return ordered;
-}
-
-export function rankReelsFeed<T extends ReelsFeedRankableItem>(items: T[], recentlySeenIds: string[]) {
-  if (items.length <= 1) {
-    return [...items];
+  if (firstCandidates.length === 0) {
+    firstCandidates = dedupedItems;
   }
 
-  const recentlySeenSet = new Set(recentlySeenIds);
-  const unseenItems = items.filter((item) => !recentlySeenSet.has(item.productId));
-  const seenItems = items.filter((item) => recentlySeenSet.has(item.productId));
-  const ordered = [...buildMixedOrder(unseenItems), ...buildMixedOrder(seenItems)];
-  const lastFirstId = recentlySeenIds[0];
+  const firstItem = randomItem(firstCandidates);
+  const remainingItems = dedupedItems.filter((item) => item.productId !== firstItem.productId);
+  const unseenItems = remainingItems.filter((item) => !recentlySeenSet.has(item.productId));
+  const seenItems = remainingItems.filter((item) => recentlySeenSet.has(item.productId));
 
-  if (lastFirstId && ordered[0]?.productId === lastFirstId) {
-    const replacementIndex = ordered.findIndex((item) => item.productId !== lastFirstId);
-
-    if (replacementIndex > 0) {
-      [ordered[0], ordered[replacementIndex]] = [ordered[replacementIndex], ordered[0]];
-    }
+  if (unseenItems.length > 0) {
+    return [firstItem, ...shuffle(unseenItems), ...shuffle(seenItems)];
   }
 
-  return ordered;
+  return [firstItem, ...shuffle(remainingItems)];
 }

@@ -1,5 +1,6 @@
-const SEEN_REELS_STORAGE_KEY = "ekalox:recently-seen-reels";
-const MAX_SEEN_REELS = 24;
+const SEEN_REELS_STORAGE_KEY = "ekalox:recentlySeenReelIds";
+const LAST_FIRST_REEL_STORAGE_KEY = "ekalox:lastFirstReelId";
+const MAX_SEEN_REELS = 20;
 
 function readSeenReels(): string[] {
   if (typeof window === "undefined") {
@@ -29,6 +30,32 @@ function writeSeenReels(ids: string[]) {
 
 export function getRecentlySeenReelIds() {
   return readSeenReels();
+}
+
+export function getLastFirstReelId() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(LAST_FIRST_REEL_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function rememberLastFirstReelId(reelId: string) {
+  const normalizedId = reelId.trim();
+
+  if (!normalizedId || typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(LAST_FIRST_REEL_STORAGE_KEY, normalizedId);
+  } catch {
+    // Ignore storage failures so reels playback keeps working.
+  }
 }
 
 export function rememberSeenReelId(reelId: string) {
