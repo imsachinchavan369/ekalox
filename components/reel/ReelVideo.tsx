@@ -13,7 +13,7 @@ export function ReelVideo({ videoRef, src, muted, autoPlay, onPlay }: ReelVideoP
     <video
       ref={videoRef}
       src={src}
-      className="h-full w-full object-contain"
+      className="h-full w-full object-cover"
       muted={muted}
       playsInline
       preload="metadata"

@@ -7,8 +7,8 @@ interface ReelOverlayProps {
 export function ReelOverlay({ children }: ReelOverlayProps) {
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
-      <div className="absolute inset-x-0 top-0 h-[28%] bg-[linear-gradient(to_bottom,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.56)_42%,rgba(0,0,0,0)_100%)]" />
-      <div className="absolute bottom-0 left-0 h-[42%] w-full bg-[linear-gradient(to_top,rgba(0,0,0,0.82)_0%,rgba(0,0,0,0.52)_38%,rgba(0,0,0,0)_78%)]" />
+      <div className="absolute inset-x-0 top-0 h-[30%] bg-[linear-gradient(to_bottom,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.42)_48%,rgba(0,0,0,0)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-[48%] bg-[linear-gradient(to_top,rgba(0,0,0,0.74)_0%,rgba(0,0,0,0.44)_42%,rgba(0,0,0,0)_100%)]" />
       {children}
     </div>
   );

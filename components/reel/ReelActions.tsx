@@ -28,7 +28,7 @@ interface ActionButtonProps {
 
 function ActionButton({ active, label, children, count, emphasis, href, tone = "brand", onClick }: ActionButtonProps) {
   const activeToneClass = tone === "like" ? "text-rose-400" : "text-cyan-100";
-  const className = `flex h-8 w-12 items-center justify-center rounded-full transition hover:-translate-y-0.5 hover:bg-white/[0.045] active:scale-95 ${
+  const className = `flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.08] bg-black/22 shadow-[0_8px_20px_rgba(0,0,0,0.2)] backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-white/[0.08] active:scale-95 ${
     active
       ? emphasis
         ? "bg-cyan-300/20 text-cyan-100 shadow-[0_0_22px_rgba(103,232,249,0.28)]"
@@ -51,7 +51,7 @@ function ActionButton({ active, label, children, count, emphasis, href, tone = "
   return (
     <div className="flex flex-col items-center gap-1">
       {button}
-      {count ? <span className="text-[11px] font-bold leading-none text-white/86 drop-shadow">{count}</span> : null}
+      {count ? <span className="text-[11px] font-bold leading-none text-white/88 drop-shadow">{count}</span> : null}
     </div>
   );
 }
@@ -109,7 +109,7 @@ export function ReelActions({
   onShare,
 }: ReelActionsProps) {
   return (
-    <div className="pointer-events-auto absolute right-3 top-1/2 flex -translate-y-1/2 flex-col items-center gap-4">
+    <div className="pointer-events-auto absolute right-3 top-[38%] flex -translate-y-1/2 flex-col items-center gap-3 min-[390px]:right-4 min-[390px]:top-[44%] min-[390px]:gap-4">
       <ActionButton active={isLiked} label="Like product" count={likeCount} tone="like" onClick={onLike}>
         <HeartIcon filled={isLiked} />
       </ActionButton>

@@ -51,15 +51,15 @@ export function ReelHeader({
   onSoundToggle,
 }: ReelHeaderProps) {
   return (
-    <div className="pointer-events-auto absolute inset-x-0 top-0 px-3.5 pt-[calc(0.8rem+env(safe-area-inset-top))] text-white">
+    <div className="pointer-events-auto absolute inset-x-0 top-0 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] text-white sm:px-5">
       <div className="flex items-center justify-between gap-3">
-        <EkaloxLogo className="h-8 w-auto max-w-[104px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] min-[390px]:h-9 min-[390px]:max-w-[112px]" />
+        <EkaloxLogo className="h-6 w-auto max-w-[82px] drop-shadow-[0_2px_10px_rgba(0,0,0,0.78)] min-[390px]:h-7 min-[390px]:max-w-[92px]" />
         <button
           type="button"
           onClick={onSoundToggle}
           aria-label="Toggle reel audio"
           aria-pressed={isSoundOn}
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black/16 drop-shadow-lg backdrop-blur-sm transition hover:bg-white/[0.06] active:scale-95 ${
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/22 drop-shadow-lg backdrop-blur-md transition hover:bg-white/[0.07] active:scale-95 ${
             isSoundOn ? "text-cyan-100" : "text-white/88"
           }`}
         >
@@ -67,17 +67,17 @@ export function ReelHeader({
         </button>
       </div>
 
-      <div className="mt-3 flex min-w-0 items-center gap-2 rounded-full bg-black/14 py-1 pl-1 pr-2 backdrop-blur-[2px]">
+      <div className="mt-3 flex min-w-0 items-center gap-2 rounded-full border border-white/[0.08] bg-black/24 py-1 pl-1 pr-2 shadow-[0_10px_28px_rgba(0,0,0,0.22)] backdrop-blur-md">
         <Link
           href={creatorHref}
           aria-label={`Open ${creatorName} profile`}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.075] text-xs font-semibold backdrop-blur-sm transition hover:bg-white/10"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.1] text-[11px] font-semibold backdrop-blur-sm transition hover:bg-white/[0.14]"
         >
           {getInitials(creatorName)}
         </Link>
         <Link
           href={creatorHref}
-          className="min-w-0 max-w-[8.25rem] truncate text-sm font-semibold drop-shadow transition hover:text-cyan-100 min-[390px]:max-w-[10rem]"
+          className="min-w-0 max-w-[8.4rem] truncate text-[13px] font-semibold drop-shadow transition hover:text-cyan-100 min-[390px]:max-w-[10.5rem]"
         >
           @{creatorName}
         </Link>
@@ -85,7 +85,7 @@ export function ReelHeader({
           type="button"
           onClick={onFollowToggle}
           title={`${followerCount} followers`}
-          className={`ml-auto shrink-0 rounded-full border px-3 py-1 text-xs font-semibold drop-shadow transition active:scale-95 ${
+          className={`ml-auto shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold drop-shadow transition active:scale-95 ${
             isFollowing
               ? "border-cyan-200/45 bg-cyan-300/12 text-cyan-100"
               : "border-white/42 bg-transparent text-white hover:border-white/65 hover:text-cyan-100"

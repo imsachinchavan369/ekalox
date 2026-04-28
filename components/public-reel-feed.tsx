@@ -337,7 +337,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
                     reviewCount={formatCompactCount(item.reviewsCount)}
                     onShare={() => handleShare(item.productId)}
                   />
-                  <div className="pointer-events-auto absolute inset-x-0 bottom-[calc(5.85rem+env(safe-area-inset-bottom))] space-y-2 px-4 pr-[4.9rem]">
+                  <div className="pointer-events-auto absolute inset-x-0 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] mx-auto w-full max-w-[32rem] rounded-t-[1.65rem] border-t border-white/[0.08] bg-[linear-gradient(180deg,rgba(8,13,24,0.58)_0%,rgba(2,6,14,0.9)_62%,rgba(0,0,0,0.96)_100%)] px-5 pb-5 pt-5 shadow-[0_-18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl min-[390px]:bottom-[calc(6rem+env(safe-area-inset-bottom))]">
                     <ReelMeta
                       averageRating={item.averageRating}
                       caption={item.caption}
@@ -346,6 +346,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
                       ratingCount={item.ratingCount}
                       title={item.title}
                     />
+                    <div className="mt-4">
                     <ReelCTA
                       ctaType={item.ctaType}
                       currencyCode={item.priceCurrency ?? item.currencyCode}
@@ -355,6 +356,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
                       priceCents={item.priceCents}
                       productId={item.productId}
                     />
+                    </div>
                   </div>
                 </ReelOverlay>
               </div>
