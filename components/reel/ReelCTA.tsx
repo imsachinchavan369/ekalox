@@ -26,7 +26,7 @@ export function ReelCTA({
   const isPaid = ctaType !== "free" && amount > 0;
 
   return (
-    <div className="pointer-events-auto flex flex-wrap items-center justify-between gap-3">
+    <div className="pointer-events-auto">
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
         <ProductPrice
           amount={amount}
@@ -46,7 +46,11 @@ export function ReelCTA({
           </div>
         ) : null}
       </div>
-      <ProductCTAButton ctaType={ctaType} href={`/products/${productId}`} className="min-w-[8.25rem] max-[374px]:min-w-full max-[374px]:flex-1" />
+      <ProductCTAButton
+        ctaType={ctaType}
+        href={`/products/${productId}`}
+        className="absolute inset-x-4 bottom-[calc(4.4rem+env(safe-area-inset-bottom))] min-h-11 w-auto"
+      />
     </div>
   );
 }

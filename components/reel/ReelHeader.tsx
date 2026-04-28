@@ -51,27 +51,26 @@ export function ReelHeader({
   onSoundToggle,
 }: ReelHeaderProps) {
   return (
-    <div className="pointer-events-auto absolute left-4 right-4 top-[calc(1rem+env(safe-area-inset-top))] text-white">
-      <div className="flex items-start justify-between gap-3">
-        <EkaloxLogo className="h-auto w-[110px] max-w-[110px] drop-shadow-[0_2px_10px_rgba(0,0,0,0.78)]" />
-        <button
-          type="button"
-          onClick={onSoundToggle}
-          aria-label="Toggle reel audio"
-          aria-pressed={isSoundOn}
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/22 drop-shadow-lg backdrop-blur-md transition hover:bg-white/[0.07] active:scale-95 ${
-            isSoundOn ? "text-cyan-100" : "text-white/88"
-          }`}
-        >
-          {isSoundOn ? <VolumeOnIcon /> : <VolumeOffIcon />}
-        </button>
-      </div>
+    <>
+      <EkaloxLogo className="pointer-events-auto absolute left-3 top-[calc(0.75rem+env(safe-area-inset-top))] h-7 w-auto max-w-[110px] drop-shadow-[0_2px_10px_rgba(0,0,0,0.78)]" />
 
-      <div className="mt-4 flex min-w-0 items-center gap-2 rounded-full border border-white/[0.08] bg-black/24 py-1 pl-1 pr-2 shadow-[0_10px_28px_rgba(0,0,0,0.22)] backdrop-blur-md">
+      <button
+        type="button"
+        onClick={onSoundToggle}
+        aria-label="Toggle reel audio"
+        aria-pressed={isSoundOn}
+        className={`pointer-events-auto absolute right-3 top-[calc(0.75rem+env(safe-area-inset-top))] flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/40 drop-shadow-lg backdrop-blur-md transition hover:bg-black/50 active:scale-95 ${
+          isSoundOn ? "text-cyan-100" : "text-white/88"
+        }`}
+      >
+        {isSoundOn ? <VolumeOnIcon /> : <VolumeOffIcon />}
+      </button>
+
+      <div className="pointer-events-auto absolute left-3 right-14 top-[calc(3.35rem+env(safe-area-inset-top))] flex min-w-0 items-center gap-2 text-white">
         <Link
           href={creatorHref}
           aria-label={`Open ${creatorName} profile`}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.1] text-[11px] font-semibold backdrop-blur-sm transition hover:bg-white/[0.14]"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-[11px] font-semibold drop-shadow transition hover:bg-white/20"
         >
           {getInitials(creatorName)}
         </Link>
@@ -85,15 +84,15 @@ export function ReelHeader({
           type="button"
           onClick={onFollowToggle}
           title={`${followerCount} followers`}
-          className={`ml-auto shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold drop-shadow transition active:scale-95 ${
+          className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold drop-shadow transition active:scale-95 ${
             isFollowing
-              ? "border-cyan-200/45 bg-cyan-300/12 text-cyan-100"
-              : "border-white/42 bg-transparent text-white hover:border-white/65 hover:text-cyan-100"
+              ? "border-white/40 bg-transparent text-cyan-100"
+              : "border-white/40 bg-transparent text-white hover:border-white/65 hover:text-cyan-100"
           }`}
         >
           {isFollowing ? "Following" : "Follow"}
         </button>
       </div>
-    </div>
+    </>
   );
 }

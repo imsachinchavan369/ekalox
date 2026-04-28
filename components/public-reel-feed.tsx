@@ -276,10 +276,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
                 <div className="absolute inset-0 bg-black" />
               )}
 
-              <div
-                className="relative h-full max-h-[100dvh] max-w-full overflow-hidden bg-black shadow-2xl shadow-black/60"
-                style={{ aspectRatio: "9 / 16", height: "min(100dvh, calc(100vw * 16 / 9))", maxWidth: "100vw" }}
-              >
+              <div className="relative h-full w-full overflow-hidden bg-black">
                 {item.reelUrl ? (
                   <ReelVideo
                     videoRef={(element) => {
@@ -337,7 +334,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
                     reviewCount={formatCompactCount(item.reviewsCount)}
                     onShare={() => handleShare(item.productId)}
                   />
-                  <div className="pointer-events-auto absolute inset-x-0 bottom-0 px-5 pb-[calc(6.9rem+env(safe-area-inset-bottom))] pr-[5.25rem] pt-16 min-[390px]:pb-[calc(7.2rem+env(safe-area-inset-bottom))] min-[390px]:pr-[5.6rem]">
+                  <div className="pointer-events-auto absolute inset-x-0 bottom-0 px-4 pb-[calc(9.2rem+env(safe-area-inset-bottom))] pr-[4.8rem] pt-16 min-[390px]:pr-[5.2rem]">
                     <ReelMeta
                       averageRating={item.averageRating}
                       caption={item.caption}
