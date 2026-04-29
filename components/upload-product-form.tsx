@@ -4,6 +4,7 @@ import { ChangeEvent, FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { ProductLandingEditorFields } from "@/components/products/ProductLandingEditorFields";
 import { PriceBreakdown } from "@/components/upload/PriceBreakdown";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { CATEGORY_OPTIONS } from "@/lib/constants/categories";
@@ -16,6 +17,7 @@ import {
   UPLOAD_STORAGE_BUCKET,
   hasAllowedMimePrefix,
   type CreateProductMetadataRequest,
+  type ProductLandingMetadata,
 } from "@/lib/uploads/contracts";
 
 interface UploadProductFormProps {
@@ -30,6 +32,38 @@ function normalize(value: FormDataEntryValue | null): string {
 
 function toFile(value: FormDataEntryValue | null): File | null {
   return value instanceof File && value.size > 0 ? value : null;
+}
+
+async function uploadOptionalImage(
+  supabase: ReturnType<typeof getSupabaseBrowserClient>,
+  userId: string,
+  file: File | null,
+  label: string,
+) {
+  if (!file) {
+    return null;
+  }
+
+  if (file.size > MAX_FILE_SIZE_BYTES || !hasAllowedMimePrefix(file.type || "", ALLOWED_THUMBNAIL_MIME_PREFIXES)) {
+    throw new Error(`${label} must be a valid image under 50MB.`);
+  }
+
+  const path = `${userId}/thumbnails/${Date.now()}-${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const { error } = await supabase.storage.from(UPLOAD_STORAGE_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    contentType: file.type || "image/jpeg",
+    upsert: false,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return path;
+}
+
+function landingText(formData: FormData, name: string) {
+  return normalize(formData.get(name));
 }
 
 const REEL_DURATION_ERROR = "Your reel must be 60 seconds or less. Please upload a shorter demo video.";
@@ -243,6 +277,43 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
         cleanupPaths.push(thumbnailPath);
       }
 
+      setUploadStatus("Uploading landing page images...");
+      const heroImageUrl = await uploadOptionalImage(supabase, user.id, toFile(formData.get("heroImage")), "Hero image");
+      if (heroImageUrl) {
+        cleanupPaths.push(heroImageUrl);
+      }
+
+      const previewGallery: NonNullable<ProductLandingMetadata["previewGallery"]> = [];
+      for (let index = 0; index < 4; index += 1) {
+        const previewImageUrl = await uploadOptionalImage(
+          supabase,
+          user.id,
+          toFile(formData.get(`previewImage${index}`)),
+          `Preview image ${index + 1}`,
+        );
+        if (previewImageUrl) {
+          cleanupPaths.push(previewImageUrl);
+        }
+
+        const title = landingText(formData, `previewTitle${index}`);
+        const description = landingText(formData, `previewDescription${index}`);
+        if (title || description || previewImageUrl) {
+          previewGallery.push({
+            description,
+            displayOrder: index + 1,
+            imageUrl: previewImageUrl,
+            title: title || `Preview ${index + 1}`,
+          });
+        }
+      }
+
+      const includedItems = Array.from({ length: 6 }, (_, index) => landingText(formData, `includedItem${index}`)).filter(Boolean);
+      const featureBlocks = Array.from({ length: 4 }, (_, index) => ({
+        description: landingText(formData, `featureDescription${index}`),
+        iconName: landingText(formData, `featureIcon${index}`),
+        title: landingText(formData, `featureTitle${index}`),
+      })).filter((feature) => feature.title || feature.description);
+
       setUploadStatus("Saving product metadata...");
       const payload: CreateProductMetadataRequest = {
         category: category as CreateProductMetadataRequest["category"],
@@ -256,6 +327,16 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
         downloadOriginalName: downloadFile.name,
         downloadMimeType: downloadFile.type || "application/octet-stream",
         thumbnailPath,
+        landing: {
+          badgeText: landingText(formData, "badgeText"),
+          featureBlocks,
+          heroImageUrl,
+          heroSubtitle: landingText(formData, "heroSubtitle"),
+          heroTitle: landingText(formData, "heroTitle"),
+          includedItems,
+          landingDescription: landingText(formData, "landingDescription"),
+          previewGallery,
+        },
       };
 
       const metadataResponse = await fetch("/api/uploads/product", {
@@ -283,8 +364,8 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
       }
 
       router.push(`/upload?success=1&product=${encodeURIComponent(titleInput)}`);
-    } catch {
-      router.push("/upload?error=Upload+failed.+Please+check+network+and+try+again");
+    } catch (error) {
+      router.push(`/upload?error=${encodeURIComponent(error instanceof Error ? error.message : "Upload failed. Please check network and try again")}`);
     } finally {
       setUploadStatus("");
       setIsSubmitting(false);
@@ -446,6 +527,8 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
             className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 file:mr-3 file:rounded-md file:border-0 file:bg-cyan-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-950 hover:file:bg-cyan-400"
           />
         </label>
+
+        <ProductLandingEditorFields />
 
         <button
           type="submit"

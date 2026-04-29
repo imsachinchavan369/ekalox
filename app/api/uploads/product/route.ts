@@ -25,6 +25,62 @@ function isUserStoragePath(path: string, userId: string, folder: "reels" | "down
   return path.startsWith(`${userId}/${folder}/`) && !path.includes("..") && !path.includes("//");
 }
 
+function normalizeText(value: unknown, maxLength: number) {
+  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+function normalizeLandingMetadata(value: unknown, userId: string) {
+  const landing = value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+  const heroImageUrl = normalizeText(landing.heroImageUrl, 500);
+  const previewGallery = Array.isArray(landing.previewGallery)
+    ? landing.previewGallery.flatMap((item, index) => {
+        const record = item && typeof item === "object" && !Array.isArray(item) ? item as Record<string, unknown> : {};
+        const title = normalizeText(record.title, 90);
+        const imageUrl = normalizeText(record.imageUrl, 500);
+
+        if (!title && !imageUrl) {
+          return [];
+        }
+
+        return [{
+          description: normalizeText(record.description, 180),
+          displayOrder: Number(record.displayOrder) || index + 1,
+          imageUrl: imageUrl && isUserStoragePath(imageUrl, userId, "thumbnails") ? imageUrl : null,
+          title: title || `Preview ${index + 1}`,
+        }];
+      }).slice(0, 8)
+    : [];
+
+  return {
+    badgeText: normalizeText(landing.badgeText, 40) || null,
+    featureBlocks: Array.isArray(landing.featureBlocks)
+      ? landing.featureBlocks.flatMap((item) => {
+          const record = item && typeof item === "object" && !Array.isArray(item) ? item as Record<string, unknown> : {};
+          const title = normalizeText(record.title, 80);
+
+          return title
+            ? [{
+                description: normalizeText(record.description, 180),
+                iconName: normalizeText(record.iconName, 32) || null,
+                title,
+              }]
+            : [];
+        }).slice(0, 8)
+      : [],
+    heroImageUrl: heroImageUrl && isUserStoragePath(heroImageUrl, userId, "thumbnails") ? heroImageUrl : null,
+    heroSubtitle: normalizeText(landing.heroSubtitle, 180) || null,
+    heroTitle: normalizeText(landing.heroTitle, 120) || null,
+    includedItems: Array.isArray(landing.includedItems)
+      ? landing.includedItems.map((item) => normalizeText(item, 90)).filter(Boolean).slice(0, 12)
+      : [],
+    landingDescription: normalizeText(landing.landingDescription, 3000) || null,
+    previewGallery,
+    productTheme: normalizeText(landing.productTheme, 32) || null,
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const contentType = request.headers.get("content-type") ?? "";
@@ -100,6 +156,8 @@ export async function POST(request: NextRequest) {
       return errorJson("Invalid thumbnail path", 400);
     }
 
+    const landing = normalizeLandingMetadata(body.landing, user.id);
+
     let creatorProfile;
     try {
       creatorProfile = await getOrCreateCreatorProfile(user);
@@ -169,6 +227,15 @@ export async function POST(request: NextRequest) {
         price_currency: priceCurrency,
         price_cents: priceCents,
         currency_code: priceCurrency,
+        hero_title: landing.heroTitle,
+        hero_subtitle: landing.heroSubtitle,
+        hero_image_url: landing.heroImageUrl,
+        badge_text: landing.badgeText,
+        product_theme: landing.productTheme,
+        preview_gallery: landing.previewGallery,
+        included_items: landing.includedItems,
+        feature_blocks: landing.featureBlocks,
+        landing_description: landing.landingDescription,
         submitted_at: nowIso,
         published_at: nowIso,
       })

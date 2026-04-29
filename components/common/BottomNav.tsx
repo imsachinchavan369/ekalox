@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
-  { href: "/", label: "Reels", icon: "play" },
+  { href: "/", label: "Home", icon: "home" },
+  { href: "/reels", label: "Reels", icon: "play" },
   { href: "/products", label: "Products", icon: "grid" },
   { href: "/upload", label: "Upload", icon: "plus" },
   { href: "/profile", label: "Profile", icon: "user" },
@@ -12,6 +13,10 @@ const tabs = [
 
 function getActiveTab(pathname: string) {
   if (pathname === "/") {
+    return "Home";
+  }
+
+  if (pathname === "/reels") {
     return "Reels";
   }
 
@@ -35,6 +40,14 @@ export function isBottomNavPath(pathname: string) {
 }
 
 function NavIcon({ icon }: { icon: (typeof tabs)[number]["icon"] }) {
+  if (icon === "home") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden="true">
+        <path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-5v-5h-4v5H5a1 1 0 0 1-1-1v-8Z" fill="currentColor" />
+      </svg>
+    );
+  }
+
   if (icon === "play") {
     return (
       <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden="true">
@@ -71,7 +84,7 @@ export function BottomNav() {
   const activeTab = getActiveTab(pathname);
 
   return (
-    <nav className="fixed bottom-[max(0.55rem,env(safe-area-inset-bottom))] left-1/2 z-50 flex w-[calc(100%-1rem)] max-w-[25rem] -translate-x-1/2 items-center justify-around rounded-[1.55rem] border border-white/[0.07] bg-slate-950/68 px-1 py-1 text-white shadow-[0_12px_34px_rgba(0,0,0,0.36)] backdrop-blur-2xl">
+    <nav className="fixed bottom-[max(0.55rem,env(safe-area-inset-bottom))] left-1/2 z-50 flex w-[calc(100%-1rem)] max-w-[30rem] -translate-x-1/2 items-center justify-around rounded-[1.55rem] border border-white/[0.07] bg-slate-950/68 px-1 py-1 text-white shadow-[0_12px_34px_rgba(0,0,0,0.36)] backdrop-blur-2xl">
       {tabs.map((tab) => {
         const isActive = tab.label === activeTab;
 

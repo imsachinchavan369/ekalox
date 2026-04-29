@@ -13,7 +13,7 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const showBottomNav = isBottomNavPath(pathname);
-  const isReels = pathname === "/";
+  const isReels = pathname === "/reels";
   const isLegal = pathname.startsWith("/legal");
 
   if (isLegal) {

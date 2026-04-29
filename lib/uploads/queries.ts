@@ -1,5 +1,10 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { UPLOAD_STORAGE_BUCKET } from "@/lib/uploads/contracts";
+import {
+  UPLOAD_STORAGE_BUCKET,
+  type ProductFeatureBlock,
+  type ProductLandingMetadata,
+  type ProductPreviewGalleryItem,
+} from "@/lib/uploads/contracts";
 
 interface ProductReelRow {
   id: string;
@@ -24,7 +29,18 @@ interface ProductRow {
   moderation_status?: string;
   is_archived?: boolean;
   affiliate_enabled?: boolean;
+  badge_text?: string | null;
   cta_type: string;
+  feature_blocks?: unknown;
+  hero_image_url?: string | null;
+  hero_subtitle?: string | null;
+  hero_title?: string | null;
+  included_items?: unknown;
+  is_featured?: boolean | null;
+  is_verified_by_ekalox?: boolean | null;
+  landing_description?: string | null;
+  preview_gallery?: unknown;
+  product_theme?: string | null;
   price_amount?: number | string | null;
   price_currency?: string | null;
   price_cents: number;
@@ -68,6 +84,7 @@ export interface ReelProductCard {
   reviewsCount: number;
   moderationStatus?: string;
   affiliateEnabled?: boolean;
+  landing: ProductLandingMetadata;
 }
 
 export interface ProductReview {
@@ -80,7 +97,7 @@ export interface ProductReview {
 
 const PUBLIC_PRODUCT_STATUSES = ["published", "verified"];
 const PRODUCT_SELECT =
-  "id, creator_profile_id, title, summary, description, category, tags, status, visibility, verification_status, moderation_status, is_archived, affiliate_enabled, cta_type, price_amount, price_currency, price_cents, currency_code";
+  "id, creator_profile_id, title, summary, description, category, tags, status, visibility, verification_status, moderation_status, is_archived, affiliate_enabled, cta_type, price_amount, price_currency, price_cents, currency_code, hero_title, hero_subtitle, hero_image_url, badge_text, product_theme, preview_gallery, included_items, feature_blocks, landing_description, is_featured, is_verified_by_ekalox";
 
 function getProductPriceAmount(product: ProductRow) {
   const amount = Number(product.price_amount);
@@ -157,6 +174,97 @@ async function getSignedOptionalAssetUrl(
   }
 
   return getSignedReelUrl(supabase, bucket, rawPath);
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function textOrNull(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function parsePreviewGallery(value: unknown): ProductPreviewGalleryItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .flatMap((item, index): ProductPreviewGalleryItem[] => {
+      const record = asRecord(item);
+      const title = textOrNull(record.title);
+
+      if (!title) {
+        return [];
+      }
+
+      return [{
+        description: textOrNull(record.description),
+        displayOrder: Number(record.displayOrder ?? record.display_order ?? index + 1) || index + 1,
+        imagePath: textOrNull(record.imageUrl ?? record.image_url),
+        imageUrl: textOrNull(record.imageUrl ?? record.image_url),
+        title,
+      }];
+    })
+    .sort((first, second) => first.displayOrder - second.displayOrder);
+}
+
+function parseIncludedItems(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map((item) => textOrNull(item)).filter((item): item is string => Boolean(item)).slice(0, 12)
+    : [];
+}
+
+function parseFeatureBlocks(value: unknown): ProductFeatureBlock[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .flatMap((item): ProductFeatureBlock[] => {
+      const record = asRecord(item);
+      const title = textOrNull(record.title);
+
+      return title
+        ? [{
+            description: textOrNull(record.description),
+            iconName: textOrNull(record.iconName ?? record.icon_name),
+            title,
+          }]
+        : [];
+    })
+    .slice(0, 8);
+}
+
+async function buildProductLanding(
+  supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
+  product: ProductRow,
+): Promise<ProductLandingMetadata> {
+  const previewGallery = parsePreviewGallery(product.preview_gallery);
+  const [heroImageUrl, signedGallery] = await Promise.all([
+    getSignedOptionalAssetUrl(supabase, UPLOAD_STORAGE_BUCKET, product.hero_image_url),
+    Promise.all(
+      previewGallery.map(async (item) => ({
+        ...item,
+        imageUrl: await getSignedOptionalAssetUrl(supabase, UPLOAD_STORAGE_BUCKET, item.imageUrl),
+      })),
+    ),
+  ]);
+
+  return {
+    badgeText: textOrNull(product.badge_text),
+    featureBlocks: parseFeatureBlocks(product.feature_blocks),
+    heroImageUrl,
+    heroImagePath: textOrNull(product.hero_image_url),
+    heroSubtitle: textOrNull(product.hero_subtitle),
+    heroTitle: textOrNull(product.hero_title),
+    includedItems: parseIncludedItems(product.included_items),
+    isFeatured: Boolean(product.is_featured),
+    isVerifiedByEkalox: Boolean(product.is_verified_by_ekalox),
+    landingDescription: textOrNull(product.landing_description),
+    previewGallery: signedGallery,
+    productTheme: textOrNull(product.product_theme),
+  };
 }
 
 async function getExactCount(
@@ -247,9 +355,10 @@ async function buildCardsFromRows(
 
       const profile = profileById.get(product.creator_profile_id);
       const profileUser = profile ? userById.get(profile.user_id) : undefined;
-      const [reelUrl, thumbnailUrl, downloadsCount, creatorFollowingCount, ratingSummary] = await Promise.all([
+      const [reelUrl, thumbnailUrl, landing, downloadsCount, creatorFollowingCount, ratingSummary] = await Promise.all([
         getSignedReelUrl(supabase, UPLOAD_STORAGE_BUCKET, reel.reel_video_path),
         getSignedOptionalAssetUrl(supabase, UPLOAD_STORAGE_BUCKET, reel.thumbnail_path),
+        buildProductLanding(supabase, product),
         getExactCount(supabase, "reel_downloads", "reel_id", reel.product_id),
         profile ? getExactCount(supabase, "creator_follows", "follower_id", profile.user_id) : 0,
         getRatingSummary(supabase, reel.product_id),
@@ -276,6 +385,7 @@ async function buildCardsFromRows(
         verificationStatus: product.verification_status || "unverified",
         moderationStatus: product.moderation_status || "clean",
         affiliateEnabled: Boolean(product.affiliate_enabled),
+        landing,
         visibility: product.visibility || "public",
         downloadsCount,
         ...ratingSummary,

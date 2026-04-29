@@ -28,6 +28,35 @@ export const EKALOX_UPLOAD_CATEGORIES = [
 export type ProductType = "free" | "paid";
 export type UploadCategory = (typeof EKALOX_UPLOAD_CATEGORIES)[number];
 
+export interface ProductPreviewGalleryItem {
+  imagePath?: string | null;
+  imageUrl?: string | null;
+  title: string;
+  description?: string | null;
+  displayOrder: number;
+}
+
+export interface ProductFeatureBlock {
+  iconName?: string | null;
+  title: string;
+  description?: string | null;
+}
+
+export interface ProductLandingMetadata {
+  heroImagePath?: string | null;
+  heroTitle?: string | null;
+  heroSubtitle?: string | null;
+  heroImageUrl?: string | null;
+  badgeText?: string | null;
+  productTheme?: string | null;
+  previewGallery?: ProductPreviewGalleryItem[];
+  includedItems?: string[];
+  featureBlocks?: ProductFeatureBlock[];
+  landingDescription?: string | null;
+  isFeatured?: boolean;
+  isVerifiedByEkalox?: boolean;
+}
+
 export interface CreateProductMetadataRequest {
   category: UploadCategory;
   title: string;
@@ -40,6 +69,7 @@ export interface CreateProductMetadataRequest {
   downloadOriginalName: string | null;
   downloadMimeType: string | null;
   thumbnailPath: string | null;
+  landing?: ProductLandingMetadata;
 }
 
 export interface UploadApiError {

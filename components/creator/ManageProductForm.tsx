@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ProductVisibilityToggle } from "@/components/creator/ProductVisibilityToggle";
+import { ProductLandingEditorFields } from "@/components/products/ProductLandingEditorFields";
 import { calculateAffiliateEarnings } from "@/lib/earnings/calculateEarnings";
 import {
   ALLOWED_REEL_MIME_PREFIXES,
@@ -11,6 +12,7 @@ import {
   MAX_FILE_SIZE_BYTES,
   UPLOAD_STORAGE_BUCKET,
   hasAllowedMimePrefix,
+  type ProductLandingMetadata,
 } from "@/lib/uploads/contracts";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -28,6 +30,7 @@ interface ManageProductFormProps {
     tags?: string[];
     thumbnailUrl?: string | null;
     title: string;
+    landing?: ProductLandingMetadata;
     verificationStatus?: string;
     visibility?: string;
   };
@@ -38,9 +41,20 @@ function sanitizeName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
+function formText(formData: FormData, name: string) {
+  const value = formData.get(name);
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function formFile(formData: FormData, name: string) {
+  const value = formData.get(name);
+  return value instanceof File && value.size > 0 ? value : null;
+}
+
 export function ManageProductForm({ initialProduct, userId }: ManageProductFormProps) {
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const [title, setTitle] = useState(initialProduct.title);
   const [caption, setCaption] = useState(initialProduct.caption || "");
   const [aboutText, setAboutText] = useState(initialProduct.aboutText || "");
@@ -68,6 +82,7 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
     try {
       let reelVideoPath: string | null = null;
       let thumbnailPath: string | null = null;
+      const formData = formRef.current ? new FormData(formRef.current) : new FormData();
 
       if (reelVideoFile) {
         if (reelVideoFile.size > MAX_FILE_SIZE_BYTES || !hasAllowedMimePrefix(reelVideoFile.type || "", ALLOWED_REEL_MIME_PREFIXES)) {
@@ -111,6 +126,62 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
         }
       }
 
+      const uploadLandingImage = async (file: File | null, label: string) => {
+        if (!file) {
+          return null;
+        }
+
+        if (file.size > MAX_FILE_SIZE_BYTES || !hasAllowedMimePrefix(file.type || "", ALLOWED_THUMBNAIL_MIME_PREFIXES)) {
+          throw new Error(`${label} must be a valid image under 50MB.`);
+        }
+
+        const imagePath = `${userId}/thumbnails/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(file.name)}`;
+        const { error } = await supabase.storage.from(UPLOAD_STORAGE_BUCKET).upload(imagePath, file, {
+          cacheControl: "3600",
+          contentType: file.type || "image/jpeg",
+          upsert: false,
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        return imagePath;
+      };
+
+      const newHeroImageUrl = await uploadLandingImage(formFile(formData, "heroImage"), "Hero image");
+      const previewGallery: NonNullable<ProductLandingMetadata["previewGallery"]> = [];
+      for (let index = 0; index < 4; index += 1) {
+        const newPreviewImageUrl = await uploadLandingImage(formFile(formData, `previewImage${index}`), `Preview image ${index + 1}`);
+        const existingPreviewImageUrl = formText(formData, `previewExistingImage${index}`);
+        const title = formText(formData, `previewTitle${index}`);
+        const description = formText(formData, `previewDescription${index}`);
+
+        if (title || description || newPreviewImageUrl || existingPreviewImageUrl) {
+          previewGallery.push({
+            description,
+            displayOrder: index + 1,
+            imageUrl: newPreviewImageUrl || existingPreviewImageUrl || null,
+            title: title || `Preview ${index + 1}`,
+          });
+        }
+      }
+
+      const landing: ProductLandingMetadata = {
+        badgeText: formText(formData, "badgeText"),
+        featureBlocks: Array.from({ length: 4 }, (_, index) => ({
+          description: formText(formData, `featureDescription${index}`),
+          iconName: formText(formData, `featureIcon${index}`),
+          title: formText(formData, `featureTitle${index}`),
+        })).filter((feature) => feature.title || feature.description),
+        heroImageUrl: newHeroImageUrl || initialProduct.landing?.heroImagePath || null,
+        heroSubtitle: formText(formData, "heroSubtitle"),
+        heroTitle: formText(formData, "heroTitle"),
+        includedItems: Array.from({ length: 6 }, (_, index) => formText(formData, `includedItem${index}`)).filter(Boolean),
+        landingDescription: formText(formData, "landingDescription"),
+        previewGallery,
+      };
+
       const response = await fetch(`/api/creator/products/${initialProduct.productId}`, {
         body: JSON.stringify({
           aboutText,
@@ -125,6 +196,7 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
           thumbnailPath,
           title,
           visibility,
+          landing,
         }),
         headers: { "content-type": "application/json" },
         method: "PATCH",
@@ -190,7 +262,7 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
   };
 
   return (
-    <section className="rounded-[1.5rem] border border-white/10 bg-slate-900/72 p-5">
+    <form ref={formRef} className="rounded-[1.5rem] border border-white/10 bg-slate-900/72 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-black text-white">Manage reel/product</h2>
@@ -262,6 +334,7 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
               <input type="file" accept="image/*" onChange={(event) => setThumbnailFile(event.target.files?.[0] ?? null)} className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-cyan-500 file:px-3 file:py-1.5 file:font-semibold file:text-slate-950" />
             </label>
           </div>
+          <ProductLandingEditorFields initialLanding={initialProduct.landing} />
         </div>
 
         <div className="space-y-3">
@@ -305,6 +378,6 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
           {message ? <p className="text-xs font-semibold text-cyan-200">{message}</p> : null}
         </div>
       </div>
-    </section>
+    </form>
   );
 }
