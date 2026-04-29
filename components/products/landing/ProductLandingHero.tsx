@@ -47,36 +47,37 @@ export function ProductLandingHero({ hasPurchased, isFree, product, subtitle }: 
             <span>Creator Product</span>
           </div>
 
-          <div className="grid max-w-lg gap-3 sm:grid-cols-[1fr_0.75fr]">
-            <ProductDetailActionButton
-              creatorName={product.creatorName}
-              currencyCode={product.priceCurrency}
-              hasPurchased={hasPurchased}
-              isFree={isFree}
-              priceAmount={product.priceAmount}
-              priceCents={product.priceCents}
-              productId={product.productId}
-              thumbnailUrl={product.landing.heroImageUrl || product.thumbnailUrl || null}
-              title={product.title}
-            />
+          <div className="max-w-lg rounded-3xl border border-white/12 bg-black/30 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl">
+            <p className="text-xs font-black uppercase tracking-wide text-violet-300">
+              {isFree ? "Free access" : "Price"}
+            </p>
+            <div className="mt-1">
+              <ProductDetailPrice amount={product.priceAmount} ctaType={product.ctaType} currency={product.priceCurrency} />
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_0.72fr] sm:items-start">
+              <ProductDetailActionButton
+                creatorName={product.creatorName}
+                currencyCode={product.priceCurrency}
+                hasPurchased={hasPurchased}
+                isFree={isFree}
+                priceAmount={product.priceAmount}
+                priceCents={product.priceCents}
+                productId={product.productId}
+                thumbnailUrl={product.landing.heroImageUrl || product.thumbnailUrl || null}
+                title={product.title}
+              />
             <Link
               href={`/products/${product.productId}/reel`}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/14 bg-black/24 px-5 py-2.5 text-sm font-black text-white backdrop-blur transition hover:border-violet-300/45 active:scale-95"
             >
               View Preview
             </Link>
+            </div>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/12 bg-black/34 p-3 backdrop-blur-xl">
-          <ProductMediaPreview product={product} className="mb-4 rounded-2xl" />
-          <p className="text-xs font-black uppercase tracking-wide text-violet-300">Special price</p>
-          <ProductDetailPrice amount={product.priceAmount} ctaType={product.ctaType} currency={product.priceCurrency} />
-          <ul className="mt-4 space-y-2 text-sm font-medium text-slate-200">
-            <li>Instant Access</li>
-            <li>{isFree ? "Free download" : "Download after purchase"}</li>
-            <li>Secure EKALOX checkout</li>
-          </ul>
+        <div className="hidden rounded-3xl border border-white/12 bg-black/34 p-3 backdrop-blur-xl sm:block">
+          <ProductMediaPreview product={product} className="rounded-2xl" />
         </div>
       </div>
     </section>

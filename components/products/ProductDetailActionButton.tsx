@@ -61,7 +61,7 @@ export function ProductDetailActionButton({
         onClick={canDownload ? startDownload : openCheckout}
         className={buttonClass}
       >
-        {isDownloading ? "Downloading..." : canDownload ? "Download Now" : "Buy Now"}
+        {isDownloading ? "Downloading..." : isFree ? "Download Free" : canDownload ? "Download Now" : "Buy Now"}
       </button>
       <div className="text-center text-xs leading-5 text-slate-500">
         <p>No refund after download</p>
