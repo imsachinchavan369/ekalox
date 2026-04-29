@@ -39,9 +39,11 @@ export function ProductLandingHero({ hasPurchased, isFree, product }: ProductLan
                 {product.landing.heroTitle || product.title}
               </span>
             </h1>
-            <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-slate-200 sm:text-lg">
-              {product.landing.heroSubtitle || product.caption || product.aboutText || "A premium EKALOX digital product with instant access after checkout."}
-            </p>
+            {product.landing.heroSubtitle ? (
+              <p className="mt-4 max-w-2xl whitespace-pre-wrap break-words text-base font-medium leading-7 text-slate-200 sm:text-lg">
+                {product.landing.heroSubtitle}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-300">

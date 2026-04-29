@@ -1,22 +1,17 @@
 import type { ProductPreviewGalleryItem } from "@/lib/uploads/contracts";
 import type { ReelProductCard } from "@/lib/uploads/queries";
 
+import { ProductDescriptionText } from "./ProductDescriptionText";
+
 interface ProductPreviewGalleryProps {
   items: ProductPreviewGalleryItem[];
   product: ReelProductCard;
 }
 
 export function ProductPreviewGallery({ items, product }: ProductPreviewGalleryProps) {
-  const gallery = items.length > 0
-    ? items
-    : [
-        {
-          description: product.caption || "Watch the creator preview reel for a quick look.",
-          displayOrder: 1,
-          imageUrl: product.thumbnailUrl,
-          title: "Product Preview",
-        },
-      ];
+  if (items.length === 0) {
+    return null;
+  }
 
   return (
     <section className="space-y-4">
@@ -25,7 +20,7 @@ export function ProductPreviewGallery({ items, product }: ProductPreviewGalleryP
         <p className="mt-1 text-sm text-slate-400">Explore what the seller has prepared.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {gallery.map((item, index) => (
+        {items.map((item, index) => (
           <article key={`${item.title}-${index}`} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] shadow-xl shadow-black/20">
             <div className="relative aspect-[5/3] bg-slate-950">
               {item.imageUrl ? (
@@ -42,7 +37,7 @@ export function ProductPreviewGallery({ items, product }: ProductPreviewGalleryP
             </div>
             <div className="space-y-1 p-4">
               <h3 className="text-sm font-black text-white">{item.title}</h3>
-              {item.description ? <p className="text-sm leading-6 text-slate-300">{item.description}</p> : null}
+              {item.description ? <ProductDescriptionText className="leading-6" text={item.description} /> : null}
             </div>
           </article>
         ))}

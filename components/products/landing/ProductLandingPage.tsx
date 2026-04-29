@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { ProductDetailCreatorRow } from "@/components/products/ProductDetailCreatorRow";
 import type { ReelProductCard } from "@/lib/uploads/queries";
 
+import { ProductDescriptionText } from "./ProductDescriptionText";
 import { ProductFeatureBlocks } from "./ProductFeatureBlocks";
 import { ProductIncludedSection } from "./ProductIncludedSection";
 import { ProductLandingHero } from "./ProductLandingHero";
@@ -26,7 +27,11 @@ export function ProductLandingPage({
   relatedProducts,
   reviewsSection,
 }: ProductLandingPageProps) {
-  const fullDescription = product.landing.landingDescription || product.aboutText || product.caption;
+  const basicDescription = (product.aboutText || product.caption || "").trim();
+  const landingDescription = (product.landing.landingDescription || "").trim();
+  const hasCustomFullDescription =
+    landingDescription.length > 0 &&
+    landingDescription.replace(/\r\n/g, "\n") !== basicDescription.replace(/\r\n/g, "\n");
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-5 text-slate-100 sm:px-6 sm:pb-6 lg:px-8">
@@ -39,18 +44,25 @@ export function ProductLandingPage({
         </div>
 
         <ProductLandingHero hasPurchased={hasPurchased} isFree={isFree} product={product} />
+        <ProductPricingCTA hasPurchased={hasPurchased} isFree={isFree} product={product} />
         <ProductPreviewGallery items={product.landing.previewGallery ?? []} product={product} />
-        <ProductIncludedSection items={product.landing.includedItems ?? []} />
-        <ProductFeatureBlocks items={product.landing.featureBlocks ?? []} />
 
-        {fullDescription ? (
+        {basicDescription ? (
           <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5">
-            <h2 className="text-xl font-black text-white">Full Description</h2>
-            <div className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-300">{fullDescription}</div>
+            <h2 className="text-xl font-black text-white">Product Preview</h2>
+            <ProductDescriptionText className="mt-3" text={basicDescription} />
           </section>
         ) : null}
 
-        <ProductPricingCTA hasPurchased={hasPurchased} isFree={isFree} product={product} />
+        <ProductIncludedSection items={product.landing.includedItems ?? []} />
+        <ProductFeatureBlocks items={product.landing.featureBlocks ?? []} />
+
+        {hasCustomFullDescription ? (
+          <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5">
+            <h2 className="text-xl font-black text-white">Full Description</h2>
+            <ProductDescriptionText className="mt-3" text={landingDescription} />
+          </section>
+        ) : null}
 
         {reviewsSection}
 
