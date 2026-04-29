@@ -13,7 +13,8 @@ interface ProductLandingHeroProps {
 }
 
 export function ProductLandingHero({ hasPurchased, isFree, product, subtitle }: ProductLandingHeroProps) {
-  const badge = product.landing.badgeText || (isFree ? "Free" : "Premium");
+  const customization = product.customization;
+  const badge = customization.badgeText || (isFree ? "Free" : "Premium");
 
   return (
     <section className="relative isolate overflow-hidden rounded-[1.75rem] border border-white/10 bg-black shadow-2xl shadow-black/30">
@@ -23,7 +24,7 @@ export function ProductLandingHero({ hasPurchased, isFree, product, subtitle }: 
         <div className="max-w-3xl space-y-5">
           <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-white/14 bg-black/35 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-white backdrop-blur">
             <span className="text-violet-300">{badge}</span>
-            {product.verificationStatus === "verified" || product.landing.isVerifiedByEkalox ? (
+            {product.verificationStatus === "verified" || customization.isVerifiedByEkalox ? (
               <span className="text-slate-300">Verified by EKALOX</span>
             ) : null}
           </div>
@@ -31,7 +32,7 @@ export function ProductLandingHero({ hasPurchased, isFree, product, subtitle }: 
           <div>
             <h1 className="text-4xl font-black leading-none text-white sm:text-5xl lg:text-6xl">
               <span className="bg-[linear-gradient(135deg,#b827ff,#2f7dff)] bg-clip-text text-transparent">
-                {product.landing.heroTitle || product.title}
+                {customization.heroTitle || product.title}
               </span>
             </h1>
             {subtitle ? (
@@ -63,7 +64,7 @@ export function ProductLandingHero({ hasPurchased, isFree, product, subtitle }: 
                 priceAmount={product.priceAmount}
                 priceCents={product.priceCents}
                 productId={product.productId}
-                thumbnailUrl={product.landing.heroImageUrl || product.thumbnailUrl || null}
+                thumbnailUrl={customization.heroImage || customization.heroImageUrl || product.thumbnailUrl || null}
                 title={product.title}
               />
             <Link

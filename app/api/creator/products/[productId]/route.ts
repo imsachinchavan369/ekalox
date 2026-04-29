@@ -22,12 +22,19 @@ function normalizeLandingMetadata(value: unknown, userId: string) {
   const landing = value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {};
-  const heroImageUrl = normalizeText(landing.heroImageUrl, 500);
+  const heroImageUrl = normalizeText(landing.heroImage ?? landing.heroImageUrl, 500);
+  const featureInput = landing.features ?? landing.featureBlocks;
+  const includesInput = landing.includes ?? landing.includedItems;
+  const galleryInput = landing.galleryImages ?? landing.previewGallery;
+  const extraSectionsInput = landing.extraSections;
+  const pricingBox = landing.pricingBox && typeof landing.pricingBox === "object" && !Array.isArray(landing.pricingBox)
+    ? landing.pricingBox as Record<string, unknown>
+    : {};
 
-  return {
+  const normalized = {
     badgeText: normalizeText(landing.badgeText, 40) || null,
-    featureBlocks: Array.isArray(landing.featureBlocks)
-      ? landing.featureBlocks.flatMap((item) => {
+    featureBlocks: Array.isArray(featureInput)
+      ? featureInput.flatMap((item) => {
           const record = item && typeof item === "object" && !Array.isArray(item) ? item as Record<string, unknown> : {};
           const title = normalizeText(record.title, 80);
 
@@ -40,15 +47,25 @@ function normalizeLandingMetadata(value: unknown, userId: string) {
             : [];
         }).slice(0, 8)
       : [],
+    heroImage: heroImageUrl && isUserStoragePath(heroImageUrl, userId, "thumbnails") ? heroImageUrl : null,
     heroImageUrl: heroImageUrl && isUserStoragePath(heroImageUrl, userId, "thumbnails") ? heroImageUrl : null,
     heroSubtitle: normalizeText(landing.heroSubtitle, 180) || null,
     heroTitle: normalizeText(landing.heroTitle, 120) || null,
-    includedItems: Array.isArray(landing.includedItems)
-      ? landing.includedItems.map((item) => normalizeText(item, 90)).filter(Boolean).slice(0, 12)
+    includedItems: Array.isArray(includesInput)
+      ? includesInput.map((item) => normalizeText(item, 90)).filter(Boolean).slice(0, 12)
       : [],
     landingDescription: normalizeText(landing.landingDescription, 3000) || null,
-    previewGallery: Array.isArray(landing.previewGallery)
-      ? landing.previewGallery.flatMap((item, index) => {
+    extraSections: Array.isArray(extraSectionsInput)
+      ? extraSectionsInput.flatMap((item) => {
+          const record = item && typeof item === "object" && !Array.isArray(item) ? item as Record<string, unknown> : {};
+          const title = normalizeText(record.title, 90);
+          const body = normalizeText(record.body, 1200);
+
+          return title || body ? [{ body, title: title || "Details" }] : [];
+        }).slice(0, 4)
+      : [],
+    previewGallery: Array.isArray(galleryInput)
+      ? galleryInput.flatMap((item, index) => {
           const record = item && typeof item === "object" && !Array.isArray(item) ? item as Record<string, unknown> : {};
           const title = normalizeText(record.title, 90);
           const imageUrl = normalizeText(record.imageUrl, 500);
@@ -65,7 +82,20 @@ function normalizeLandingMetadata(value: unknown, userId: string) {
           }];
         }).slice(0, 8)
       : [],
+    pricingBox: Object.keys(pricingBox).length > 0
+      ? {
+          heading: normalizeText(pricingBox.heading, 90) || null,
+          note: normalizeText(pricingBox.note, 180) || null,
+        }
+      : null,
     productTheme: normalizeText(landing.productTheme, 32) || null,
+  };
+
+  return {
+    ...normalized,
+    features: normalized.featureBlocks,
+    galleryImages: normalized.previewGallery,
+    includes: normalized.includedItems,
   };
 }
 
@@ -93,7 +123,7 @@ export async function PATCH(request: NextRequest, { params }: CreatorProductRout
   const visibility = body.visibility === "private" ? "private" : "public";
   const reelVideoPath = normalizeText(body.reelVideoPath, 500);
   const thumbnailPath = normalizeText(body.thumbnailPath, 500);
-  const landing = normalizeLandingMetadata(body.landing, user.id);
+  const landing = normalizeLandingMetadata(body.customization ?? body.landing, user.id);
   const tags = Array.isArray(body.tags)
     ? body.tags.map((item) => normalizeText(item, 24)).filter(Boolean).slice(0, 8)
     : [];
@@ -140,6 +170,7 @@ export async function PATCH(request: NextRequest, { params }: CreatorProductRout
         description: aboutText,
         affiliate_enabled: affiliateEnabled,
         badge_text: landing.badgeText,
+        customization: landing,
         feature_blocks: landing.featureBlocks,
         hero_image_url: landing.heroImageUrl,
         hero_subtitle: landing.heroSubtitle,

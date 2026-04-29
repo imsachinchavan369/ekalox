@@ -30,6 +30,7 @@ interface ManageProductFormProps {
     tags?: string[];
     thumbnailUrl?: string | null;
     title: string;
+    customization?: ProductLandingMetadata;
     landing?: ProductLandingMetadata;
     verificationStatus?: string;
     visibility?: string;
@@ -167,20 +168,24 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
         }
       }
 
-      const landing: ProductLandingMetadata = {
+      const customization: ProductLandingMetadata = {
         badgeText: formText(formData, "badgeText"),
         featureBlocks: Array.from({ length: 4 }, (_, index) => ({
           description: formText(formData, `featureDescription${index}`),
           iconName: formText(formData, `featureIcon${index}`),
           title: formText(formData, `featureTitle${index}`),
         })).filter((feature) => feature.title || feature.description),
-        heroImageUrl: newHeroImageUrl || initialProduct.landing?.heroImagePath || null,
+        heroImage: newHeroImageUrl || initialProduct.customization?.heroImagePath || null,
+        heroImageUrl: newHeroImageUrl || initialProduct.customization?.heroImagePath || null,
         heroSubtitle: formText(formData, "heroSubtitle"),
         heroTitle: formText(formData, "heroTitle"),
         includedItems: Array.from({ length: 6 }, (_, index) => formText(formData, `includedItem${index}`)).filter(Boolean),
         landingDescription: formText(formData, "landingDescription"),
         previewGallery,
       };
+      customization.features = customization.featureBlocks;
+      customization.includes = customization.includedItems;
+      customization.galleryImages = customization.previewGallery;
 
       const response = await fetch(`/api/creator/products/${initialProduct.productId}`, {
         body: JSON.stringify({
@@ -196,7 +201,7 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
           thumbnailPath,
           title,
           visibility,
-          landing,
+          customization,
         }),
         headers: { "content-type": "application/json" },
         method: "PATCH",
@@ -334,7 +339,7 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
               <input type="file" accept="image/*" onChange={(event) => setThumbnailFile(event.target.files?.[0] ?? null)} className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-cyan-500 file:px-3 file:py-1.5 file:font-semibold file:text-slate-950" />
             </label>
           </div>
-          <ProductLandingEditorFields initialLanding={initialProduct.landing} />
+          <ProductLandingEditorFields initialLanding={initialProduct.customization} />
         </div>
 
         <div className="space-y-3">

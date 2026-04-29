@@ -9,7 +9,7 @@ interface HomePageProps {
 }
 
 export function HomePage({ products }: HomePageProps) {
-  const featuredProduct = products.find((product) => product.landing.isFeatured) ?? products[0] ?? null;
+  const featuredProduct = products.find((product) => product.customization.isFeatured) ?? products[0] ?? null;
   const premiumProducts = products
     .filter((product) => product.ctaType !== "free" && product.productId !== featuredProduct?.productId)
     .slice(0, 6);

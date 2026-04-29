@@ -42,20 +42,38 @@ export interface ProductFeatureBlock {
   description?: string | null;
 }
 
-export interface ProductLandingMetadata {
+export interface ProductPricingBox {
+  heading?: string | null;
+  note?: string | null;
+}
+
+export interface ProductExtraSection {
+  title: string;
+  body?: string | null;
+}
+
+export interface ProductCustomizationMetadata {
+  heroImage?: string | null;
   heroImagePath?: string | null;
   heroTitle?: string | null;
   heroSubtitle?: string | null;
   heroImageUrl?: string | null;
   badgeText?: string | null;
   productTheme?: string | null;
+  galleryImages?: ProductPreviewGalleryItem[];
   previewGallery?: ProductPreviewGalleryItem[];
+  includes?: string[];
   includedItems?: string[];
+  features?: ProductFeatureBlock[];
   featureBlocks?: ProductFeatureBlock[];
+  pricingBox?: ProductPricingBox | null;
+  extraSections?: ProductExtraSection[];
   landingDescription?: string | null;
   isFeatured?: boolean;
   isVerifiedByEkalox?: boolean;
 }
+
+export type ProductLandingMetadata = ProductCustomizationMetadata;
 
 export interface CreateProductMetadataRequest {
   category: UploadCategory;

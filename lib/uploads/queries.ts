@@ -1,9 +1,11 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import {
   UPLOAD_STORAGE_BUCKET,
+  type ProductExtraSection,
   type ProductFeatureBlock,
   type ProductLandingMetadata,
   type ProductPreviewGalleryItem,
+  type ProductPricingBox,
 } from "@/lib/uploads/contracts";
 
 interface ProductReelRow {
@@ -31,6 +33,7 @@ interface ProductRow {
   affiliate_enabled?: boolean;
   badge_text?: string | null;
   cta_type: string;
+  customization?: unknown;
   feature_blocks?: unknown;
   hero_image_url?: string | null;
   hero_subtitle?: string | null;
@@ -84,6 +87,7 @@ export interface ReelProductCard {
   reviewsCount: number;
   moderationStatus?: string;
   affiliateEnabled?: boolean;
+  customization: ProductLandingMetadata;
   landing: ProductLandingMetadata;
 }
 
@@ -97,7 +101,7 @@ export interface ProductReview {
 
 const PUBLIC_PRODUCT_STATUSES = ["published", "verified"];
 const PRODUCT_SELECT =
-  "id, creator_profile_id, title, summary, description, category, tags, status, visibility, verification_status, moderation_status, is_archived, affiliate_enabled, cta_type, price_amount, price_currency, price_cents, currency_code, hero_title, hero_subtitle, hero_image_url, badge_text, product_theme, preview_gallery, included_items, feature_blocks, landing_description, is_featured, is_verified_by_ekalox";
+  "id, creator_profile_id, title, summary, description, category, tags, status, visibility, verification_status, moderation_status, is_archived, affiliate_enabled, cta_type, price_amount, price_currency, price_cents, currency_code, customization, hero_title, hero_subtitle, hero_image_url, badge_text, product_theme, preview_gallery, included_items, feature_blocks, landing_description, is_featured, is_verified_by_ekalox";
 
 function getProductPriceAmount(product: ProductRow) {
   const amount = Number(product.price_amount);
@@ -236,13 +240,58 @@ function parseFeatureBlocks(value: unknown): ProductFeatureBlock[] {
     .slice(0, 8);
 }
 
+function parseExtraSections(value: unknown): ProductExtraSection[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .flatMap((item): ProductExtraSection[] => {
+      const record = asRecord(item);
+      const title = textOrNull(record.title);
+      const body = textOrNull(record.body);
+
+      return title || body ? [{ body, title: title || "Details" }] : [];
+    })
+    .slice(0, 4);
+}
+
+function parsePricingBox(value: unknown): ProductPricingBox | null {
+  const record = asRecord(value);
+  const heading = textOrNull(record.heading);
+  const note = textOrNull(record.note);
+
+  return heading || note ? { heading, note } : null;
+}
+
+function readCustomization(product: ProductRow) {
+  const customization = asRecord(product.customization);
+
+  return {
+    badgeText: textOrNull(customization.badgeText),
+    featureBlocks: parseFeatureBlocks(customization.features ?? customization.featureBlocks),
+    heroImagePath: textOrNull(customization.heroImage ?? customization.heroImageUrl),
+    heroSubtitle: textOrNull(customization.heroSubtitle),
+    heroTitle: textOrNull(customization.heroTitle),
+    includedItems: parseIncludedItems(customization.includes ?? customization.includedItems),
+    extraSections: parseExtraSections(customization.extraSections),
+    isFeatured: customization.isFeatured === true,
+    isVerifiedByEkalox: customization.isVerifiedByEkalox === true,
+    landingDescription: textOrNull(customization.landingDescription),
+    previewGallery: parsePreviewGallery(customization.galleryImages ?? customization.previewGallery),
+    pricingBox: parsePricingBox(customization.pricingBox),
+    productTheme: textOrNull(customization.productTheme),
+  };
+}
+
 async function buildProductLanding(
   supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
   product: ProductRow,
 ): Promise<ProductLandingMetadata> {
-  const previewGallery = parsePreviewGallery(product.preview_gallery);
+  const rawCustomization = readCustomization(product);
+  const previewGallery = rawCustomization.previewGallery;
   const [heroImageUrl, signedGallery] = await Promise.all([
-    getSignedOptionalAssetUrl(supabase, UPLOAD_STORAGE_BUCKET, product.hero_image_url),
+    getSignedOptionalAssetUrl(supabase, UPLOAD_STORAGE_BUCKET, rawCustomization.heroImagePath),
     Promise.all(
       previewGallery.map(async (item) => ({
         ...item,
@@ -252,18 +301,24 @@ async function buildProductLanding(
   ]);
 
   return {
-    badgeText: textOrNull(product.badge_text),
-    featureBlocks: parseFeatureBlocks(product.feature_blocks),
+    badgeText: rawCustomization.badgeText,
+    featureBlocks: rawCustomization.featureBlocks,
+    features: rawCustomization.featureBlocks,
+    galleryImages: signedGallery,
+    heroImage: heroImageUrl,
     heroImageUrl,
-    heroImagePath: textOrNull(product.hero_image_url),
-    heroSubtitle: textOrNull(product.hero_subtitle),
-    heroTitle: textOrNull(product.hero_title),
-    includedItems: parseIncludedItems(product.included_items),
-    isFeatured: Boolean(product.is_featured),
-    isVerifiedByEkalox: Boolean(product.is_verified_by_ekalox),
-    landingDescription: textOrNull(product.landing_description),
+    heroImagePath: rawCustomization.heroImagePath,
+    heroSubtitle: rawCustomization.heroSubtitle,
+    heroTitle: rawCustomization.heroTitle,
+    includedItems: rawCustomization.includedItems,
+    includes: rawCustomization.includedItems,
+    extraSections: rawCustomization.extraSections,
+    isFeatured: rawCustomization.isFeatured,
+    isVerifiedByEkalox: rawCustomization.isVerifiedByEkalox,
+    landingDescription: rawCustomization.landingDescription,
     previewGallery: signedGallery,
-    productTheme: textOrNull(product.product_theme),
+    pricingBox: rawCustomization.pricingBox,
+    productTheme: rawCustomization.productTheme,
   };
 }
 
@@ -385,6 +440,7 @@ async function buildCardsFromRows(
         verificationStatus: product.verification_status || "unverified",
         moderationStatus: product.moderation_status || "clean",
         affiliateEnabled: Boolean(product.affiliate_enabled),
+        customization: landing,
         landing,
         visibility: product.visibility || "public",
         downloadsCount,
