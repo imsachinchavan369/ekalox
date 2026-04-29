@@ -41,6 +41,8 @@ export function MyProductsSection({ products }: MyProductsSectionProps) {
               productId={reel.productId}
               ratingCount={reel.ratingCount}
               reelUrl={reel.reelUrl}
+              landing={reel.landing}
+              thumbnailUrl={reel.thumbnailUrl}
               verificationStatus={reel.verificationStatus}
               visibility={reel.visibility}
               title={reel.title}

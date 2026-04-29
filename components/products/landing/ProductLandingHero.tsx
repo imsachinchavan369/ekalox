@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ProductMediaPreview } from "@/components/products/ProductMediaPreview";
 import { ProductDetailActionButton } from "@/components/products/ProductDetailActionButton";
 import { ProductDetailPrice } from "@/components/products/ProductDetailPrice";
 import type { ReelProductCard } from "@/lib/uploads/queries";
@@ -8,21 +9,15 @@ interface ProductLandingHeroProps {
   hasPurchased: boolean;
   isFree: boolean;
   product: ReelProductCard;
+  subtitle?: string;
 }
 
-export function ProductLandingHero({ hasPurchased, isFree, product }: ProductLandingHeroProps) {
-  const heroImage = product.landing.heroImageUrl || product.thumbnailUrl;
+export function ProductLandingHero({ hasPurchased, isFree, product, subtitle }: ProductLandingHeroProps) {
   const badge = product.landing.badgeText || (isFree ? "Free" : "Premium");
 
   return (
     <section className="relative isolate overflow-hidden rounded-[1.75rem] border border-white/10 bg-black shadow-2xl shadow-black/30">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(168,85,247,0.32),transparent_32%),radial-gradient(circle_at_72%_18%,rgba(59,130,246,0.28),transparent_30%),linear-gradient(90deg,#020204_0%,rgba(2,2,4,0.86)_40%,rgba(2,2,4,0.36)_100%)]" />
-      {heroImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={heroImage} alt="" className="absolute inset-y-0 right-0 -z-10 h-full w-full object-cover opacity-55 lg:w-[62%]" />
-      ) : product.reelUrl ? (
-        <video src={product.reelUrl} className="absolute inset-y-0 right-0 -z-10 h-full w-full object-cover opacity-42 lg:w-[62%]" muted playsInline preload="metadata" />
-      ) : null}
 
       <div className="relative grid min-h-[34rem] items-end gap-8 px-5 py-7 sm:px-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(18rem,0.55fr)] lg:items-center lg:px-10">
         <div className="max-w-3xl space-y-5">
@@ -39,9 +34,9 @@ export function ProductLandingHero({ hasPurchased, isFree, product }: ProductLan
                 {product.landing.heroTitle || product.title}
               </span>
             </h1>
-            {product.landing.heroSubtitle ? (
-              <p className="mt-4 max-w-2xl whitespace-pre-wrap break-words text-base font-medium leading-7 text-slate-200 sm:text-lg">
-                {product.landing.heroSubtitle}
+            {subtitle ? (
+              <p className="mt-4 line-clamp-2 max-w-2xl whitespace-pre-wrap break-words text-base font-medium leading-7 text-slate-200 sm:text-lg">
+                {subtitle}
               </p>
             ) : null}
           </div>
@@ -61,7 +56,7 @@ export function ProductLandingHero({ hasPurchased, isFree, product }: ProductLan
               priceAmount={product.priceAmount}
               priceCents={product.priceCents}
               productId={product.productId}
-              thumbnailUrl={heroImage || null}
+              thumbnailUrl={product.landing.heroImageUrl || product.thumbnailUrl || null}
               title={product.title}
             />
             <Link
@@ -73,7 +68,8 @@ export function ProductLandingHero({ hasPurchased, isFree, product }: ProductLan
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/12 bg-black/34 p-5 backdrop-blur-xl">
+        <div className="rounded-3xl border border-white/12 bg-black/34 p-3 backdrop-blur-xl">
+          <ProductMediaPreview product={product} className="mb-4 rounded-2xl" />
           <p className="text-xs font-black uppercase tracking-wide text-violet-300">Special price</p>
           <ProductDetailPrice amount={product.priceAmount} ctaType={product.ctaType} currency={product.priceCurrency} />
           <ul className="mt-4 space-y-2 text-sm font-medium text-slate-200">

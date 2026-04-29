@@ -2,14 +2,15 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { ProductDetailCreatorRow } from "@/components/products/ProductDetailCreatorRow";
+import { ProductMediaPreview } from "@/components/products/ProductMediaPreview";
 import type { ReelProductCard } from "@/lib/uploads/queries";
 
 import { ProductDescriptionText } from "./ProductDescriptionText";
+import { ProductFeatureStrip } from "./ProductFeatureStrip";
 import { ProductFeatureBlocks } from "./ProductFeatureBlocks";
 import { ProductIncludedSection } from "./ProductIncludedSection";
 import { ProductLandingHero } from "./ProductLandingHero";
 import { ProductPreviewGallery } from "./ProductPreviewGallery";
-import { ProductPricingCTA } from "./ProductPricingCTA";
 
 interface ProductLandingPageProps {
   canReview: boolean;
@@ -32,6 +33,17 @@ export function ProductLandingPage({
   const hasCustomFullDescription =
     landingDescription.length > 0 &&
     landingDescription.replace(/\r\n/g, "\n") !== basicDescription.replace(/\r\n/g, "\n");
+  const hasCustomContent = Boolean(
+    product.landing.heroTitle ||
+    product.landing.heroSubtitle ||
+    product.landing.heroImageUrl ||
+    product.landing.badgeText ||
+    (product.landing.previewGallery?.length ?? 0) > 0 ||
+    (product.landing.includedItems?.length ?? 0) > 0 ||
+    (product.landing.featureBlocks?.length ?? 0) > 0 ||
+    hasCustomFullDescription,
+  );
+  const defaultSubtitle = basicDescription.split(/\r?\n/).find((line) => line.trim())?.trim();
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-black px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-5 text-slate-100 sm:px-6 sm:pb-6 lg:px-8">
@@ -43,26 +55,42 @@ export function ProductLandingPage({
           <ProductDetailCreatorRow creatorId={product.creatorProfileId} creatorName={product.creatorName} />
         </div>
 
-        <ProductLandingHero hasPurchased={hasPurchased} isFree={isFree} product={product} />
-        <ProductPricingCTA hasPurchased={hasPurchased} isFree={isFree} product={product} />
-        <ProductPreviewGallery items={product.landing.previewGallery ?? []} product={product} />
+        <ProductLandingHero
+          hasPurchased={hasPurchased}
+          isFree={isFree}
+          product={product}
+          subtitle={hasCustomContent ? product.landing.heroSubtitle || undefined : defaultSubtitle}
+        />
 
-        {basicDescription ? (
-          <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5">
-            <h2 className="text-xl font-black text-white">Product Preview</h2>
-            <ProductDescriptionText className="mt-3" text={basicDescription} />
-          </section>
-        ) : null}
+        {hasCustomContent ? (
+          <>
+            <ProductPreviewGallery items={product.landing.previewGallery ?? []} product={product} />
+            {(product.landing.includedItems?.length ?? 0) > 0 ? (
+              <ProductIncludedSection items={product.landing.includedItems ?? []} />
+            ) : null}
+            <ProductFeatureBlocks items={product.landing.featureBlocks ?? []} />
+            {hasCustomFullDescription ? (
+              <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5">
+                <h2 className="text-xl font-black text-white">Full Description</h2>
+                <ProductDescriptionText className="mt-3" text={landingDescription} />
+              </section>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <ProductFeatureStrip description={basicDescription} />
+            <ProductPreviewGallery items={product.landing.previewGallery ?? []} product={product} />
 
-        <ProductIncludedSection items={product.landing.includedItems ?? []} />
-        <ProductFeatureBlocks items={product.landing.featureBlocks ?? []} />
+            {basicDescription ? (
+              <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5">
+                <h2 className="text-xl font-black text-white">Product Description</h2>
+                <ProductDescriptionText className="mt-3" text={basicDescription} />
+              </section>
+            ) : null}
 
-        {hasCustomFullDescription ? (
-          <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5">
-            <h2 className="text-xl font-black text-white">Full Description</h2>
-            <ProductDescriptionText className="mt-3" text={landingDescription} />
-          </section>
-        ) : null}
+            <ProductIncludedSection items={[]} />
+          </>
+        )}
 
         {reviewsSection}
 
@@ -75,14 +103,7 @@ export function ProductLandingPage({
               {relatedProducts.map((item) => (
                 <li key={item.productId}>
                   <Link href={`/products/${item.productId}`} className="block rounded-2xl border border-white/10 bg-black/26 p-3 transition hover:border-cyan-300/30">
-                    <div className="aspect-[5/4] overflow-hidden rounded-xl bg-slate-950">
-                      {item.thumbnailUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-                      ) : item.reelUrl ? (
-                        <video src={item.reelUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />
-                      ) : null}
-                    </div>
+                    <ProductMediaPreview product={item} className="rounded-xl" />
                     <p className="mt-3 line-clamp-2 text-sm font-black text-white">{item.title}</p>
                   </Link>
                 </li>

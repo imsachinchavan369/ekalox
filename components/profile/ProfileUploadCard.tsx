@@ -4,6 +4,8 @@ import { ModerationStatusBadge } from "@/components/common/ModerationStatusBadge
 import { ProductPrice } from "@/components/common/ProductPrice";
 import { RatingStars } from "@/components/common/RatingStars";
 import { VerifiedByEkaloxBadge } from "@/components/common/VerifiedByEkaloxBadge";
+import { ProductMediaPreview } from "@/components/products/ProductMediaPreview";
+import type { ProductLandingMetadata } from "@/lib/uploads/contracts";
 
 interface ProfileUploadCardProps {
   averageRating: number;
@@ -17,6 +19,8 @@ interface ProfileUploadCardProps {
   productId: string;
   ratingCount: number;
   reelUrl: string | null;
+  landing?: ProductLandingMetadata;
+  thumbnailUrl?: string | null;
   verificationStatus?: string;
   visibility?: string;
   title: string;
@@ -34,6 +38,8 @@ export function ProfileUploadCard({
   productId,
   ratingCount,
   reelUrl,
+  landing,
+  thumbnailUrl,
   verificationStatus,
   visibility,
   title,
@@ -43,13 +49,10 @@ export function ProfileUploadCard({
   return (
     <li className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/82 shadow-xl shadow-black/20">
       <div className="flex gap-3 p-3">
-        <div className="flex aspect-[9/16] w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-black">
-          {reelUrl ? (
-            <video src={reelUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />
-          ) : (
-            <span className="px-2 text-center text-[11px] text-slate-500">No reel</span>
-          )}
-        </div>
+        <ProductMediaPreview
+          className="w-20 shrink-0 rounded-2xl"
+          media={{ heroImageUrl: landing?.heroImageUrl, reelUrl, thumbnailUrl }}
+        />
 
         <div className="min-w-0 flex-1 py-1">
           <div className="flex items-start justify-between gap-3">

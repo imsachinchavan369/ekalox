@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ProductPrice } from "@/components/common/ProductPrice";
 import { VerifiedByEkaloxBadge } from "@/components/common/VerifiedByEkaloxBadge";
 import { ProductCTAButton } from "@/components/common/ProductCTAButton";
+import { ProductMediaPreview } from "@/components/products/ProductMediaPreview";
 import { getCreatorHref } from "@/lib/reels/creator-routing";
 import type { SupportedCurrency } from "@/lib/utils/currency";
 import type { ReelProductCard } from "@/lib/uploads/queries";
@@ -19,23 +20,11 @@ export function ProductCard({ displayCurrency, product }: ProductCardProps) {
   return (
     <li className="group min-w-0">
       <article className="flex h-full min-h-[14.25rem] flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-[0_18px_42px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:border-cyan-300/28 hover:bg-slate-900">
-        <div className="relative aspect-[5/4] overflow-hidden bg-slate-950">
+        <div className="relative overflow-hidden bg-slate-950">
           <Link href={reelHref} className="absolute inset-0 z-10" aria-label={`Preview reel for ${product.title}`}>
             <span className="sr-only">Preview product reel</span>
           </Link>
-          {product.reelUrl ? (
-            <video
-              src={product.reelUrl}
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.025]"
-              muted
-              playsInline
-              preload="metadata"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.18),transparent_42%),#020617] px-3 text-center text-xs font-semibold text-slate-500">
-              EKALOX
-            </div>
-          )}
+          <ProductMediaPreview product={product} mediaClassName="transition duration-300 group-hover:scale-[1.025]" />
           <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/58 to-transparent" />
           {product.verificationStatus === "verified" ? (
             <div className="absolute left-3 top-3 z-20">

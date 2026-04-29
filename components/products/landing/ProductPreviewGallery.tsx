@@ -22,12 +22,12 @@ export function ProductPreviewGallery({ items, product }: ProductPreviewGalleryP
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {items.map((item, index) => (
           <article key={`${item.title}-${index}`} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] shadow-xl shadow-black/20">
-            <div className="relative aspect-[5/3] bg-slate-950">
+            <div className="relative aspect-[9/16] bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.2),transparent_42%),#080810]">
               {item.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
+                <img src={item.imageUrl} alt="" className="h-full w-full object-cover object-center" />
               ) : product.reelUrl ? (
-                <video src={product.reelUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                <video src={product.reelUrl} className="h-full w-full object-cover object-center" muted playsInline preload="metadata" />
               ) : (
                 <div className="flex h-full items-center justify-center text-xs font-black text-slate-600">EKALOX</div>
               )}
