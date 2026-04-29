@@ -100,8 +100,24 @@ export interface ProductReview {
 }
 
 const PUBLIC_PRODUCT_STATUSES = ["published", "verified"];
-const PRODUCT_SELECT =
-  "id, creator_profile_id, title, summary, description, category, tags, status, visibility, verification_status, moderation_status, is_archived, affiliate_enabled, cta_type, price_amount, price_currency, price_cents, currency_code, customization, hero_title, hero_subtitle, hero_image_url, badge_text, product_theme, preview_gallery, included_items, feature_blocks, landing_description, is_featured, is_verified_by_ekalox";
+const BASE_PRODUCT_SELECT =
+  "id, creator_profile_id, title, summary, description, category, tags, status, visibility, verification_status, moderation_status, is_archived, affiliate_enabled, cta_type, price_amount, price_currency, price_cents, currency_code, hero_title, hero_subtitle, hero_image_url, badge_text, product_theme, preview_gallery, included_items, feature_blocks, landing_description, is_featured, is_verified_by_ekalox";
+const PRODUCT_SELECT_WITH_CUSTOMIZATION = `${BASE_PRODUCT_SELECT}, customization`;
+
+function isMissingCustomizationColumnError(error: { code?: string; details?: string; message?: string } | null) {
+  if (!error) {
+    return false;
+  }
+
+  const message = `${error.code ?? ""} ${error.details ?? ""} ${error.message ?? ""}`.toLowerCase();
+  return message.includes("customization") && (
+    message.includes("could not find") ||
+    message.includes("schema cache") ||
+    message.includes("does not exist") ||
+    error.code === "42703" ||
+    error.code === "PGRST204"
+  );
+}
 
 function getProductPriceAmount(product: ProductRow) {
   const amount = Number(product.price_amount);
@@ -266,21 +282,22 @@ function parsePricingBox(value: unknown): ProductPricingBox | null {
 
 function readCustomization(product: ProductRow) {
   const customization = asRecord(product.customization);
+  const hasCustomization = Object.keys(customization).length > 0;
 
   return {
-    badgeText: textOrNull(customization.badgeText),
-    featureBlocks: parseFeatureBlocks(customization.features ?? customization.featureBlocks),
-    heroImagePath: textOrNull(customization.heroImage ?? customization.heroImageUrl),
-    heroSubtitle: textOrNull(customization.heroSubtitle),
-    heroTitle: textOrNull(customization.heroTitle),
-    includedItems: parseIncludedItems(customization.includes ?? customization.includedItems),
+    badgeText: textOrNull(hasCustomization ? customization.badgeText : product.badge_text),
+    featureBlocks: parseFeatureBlocks(hasCustomization ? customization.features ?? customization.featureBlocks : product.feature_blocks),
+    heroImagePath: textOrNull(hasCustomization ? customization.heroImage ?? customization.heroImageUrl : product.hero_image_url),
+    heroSubtitle: textOrNull(hasCustomization ? customization.heroSubtitle : product.hero_subtitle),
+    heroTitle: textOrNull(hasCustomization ? customization.heroTitle : product.hero_title),
+    includedItems: parseIncludedItems(hasCustomization ? customization.includes ?? customization.includedItems : product.included_items),
     extraSections: parseExtraSections(customization.extraSections),
-    isFeatured: customization.isFeatured === true,
-    isVerifiedByEkalox: customization.isVerifiedByEkalox === true,
-    landingDescription: textOrNull(customization.landingDescription),
-    previewGallery: parsePreviewGallery(customization.galleryImages ?? customization.previewGallery),
+    isFeatured: hasCustomization ? customization.isFeatured === true : Boolean(product.is_featured),
+    isVerifiedByEkalox: hasCustomization ? customization.isVerifiedByEkalox === true : Boolean(product.is_verified_by_ekalox),
+    landingDescription: textOrNull(hasCustomization ? customization.landingDescription : product.landing_description),
+    previewGallery: parsePreviewGallery(hasCustomization ? customization.galleryImages ?? customization.previewGallery : product.preview_gallery),
     pricingBox: parsePricingBox(customization.pricingBox),
-    productTheme: textOrNull(customization.productTheme),
+    productTheme: textOrNull(hasCustomization ? customization.productTheme : product.product_theme),
   };
 }
 
@@ -459,7 +476,7 @@ async function getProductsByIds(productIds: string[]): Promise<ReelProductCard[]
     return [];
   }
 
-  const [{ data: reelsData, error: reelsError }, { data: productsData, error: productsError }] = await Promise.all([
+  const [{ data: reelsData, error: reelsError }, productsResult] = await Promise.all([
     supabase
       .from("product_reels")
       .select("id, product_id, caption, created_at, reel_video_path, thumbnail_path")
@@ -467,9 +484,16 @@ async function getProductsByIds(productIds: string[]): Promise<ReelProductCard[]
       .order("created_at", { ascending: false }),
     supabase
       .from("products")
-      .select(PRODUCT_SELECT)
+      .select(PRODUCT_SELECT_WITH_CUSTOMIZATION)
       .in("id", productIds),
   ]);
+
+  const { data: productsData, error: productsError } = productsResult.error && isMissingCustomizationColumnError(productsResult.error)
+    ? await supabase
+        .from("products")
+        .select(BASE_PRODUCT_SELECT)
+        .in("id", productIds)
+    : productsResult;
 
   const reels = (reelsData ?? []) as ProductReelRow[];
   const products = (productsData ?? []) as ProductRow[];
@@ -502,10 +526,17 @@ export async function getMyUploads(userId: string): Promise<ReelProductCard[]> {
 
   const productIds = reels.map((item) => item.product_id);
 
-  const { data: productsData, error: productsError } = await supabase
+  const productsResult = await supabase
     .from("products")
-    .select(PRODUCT_SELECT)
+    .select(PRODUCT_SELECT_WITH_CUSTOMIZATION)
     .in("id", productIds);
+
+  const { data: productsData, error: productsError } = productsResult.error && isMissingCustomizationColumnError(productsResult.error)
+    ? await supabase
+        .from("products")
+        .select(BASE_PRODUCT_SELECT)
+        .in("id", productIds)
+    : productsResult;
 
   const products = (productsData ?? []) as ProductRow[];
 
@@ -532,14 +563,25 @@ export async function getPublicReelFeed(): Promise<ReelProductCard[]> {
 
   const productIds = Array.from(new Set(reels.map((reel) => reel.product_id)));
 
-  const { data: productsData, error: productsError } = await supabase
+  const productsResult = await supabase
     .from("products")
-    .select(PRODUCT_SELECT)
+    .select(PRODUCT_SELECT_WITH_CUSTOMIZATION)
     .in("id", productIds)
     .in("status", PUBLIC_PRODUCT_STATUSES)
     .eq("visibility", "public")
     .eq("is_archived", false)
     .not("moderation_status", "in", "(removed,under_review)");
+
+  const { data: productsData, error: productsError } = productsResult.error && isMissingCustomizationColumnError(productsResult.error)
+    ? await supabase
+        .from("products")
+        .select(BASE_PRODUCT_SELECT)
+        .in("id", productIds)
+        .in("status", PUBLIC_PRODUCT_STATUSES)
+        .eq("visibility", "public")
+        .eq("is_archived", false)
+        .not("moderation_status", "in", "(removed,under_review)")
+    : productsResult;
 
   const products = (productsData ?? []) as ProductRow[];
 
@@ -711,7 +753,7 @@ export async function getUserProfileOrders(userId: string): Promise<UserProfileO
 
 export async function getCreatorManagedProduct(productId: string, userId: string): Promise<ReelProductCard | null> {
   const supabase = await getSupabaseServerClient();
-  const [{ data: reelData, error: reelError }, { data: productData, error: productError }] = await Promise.all([
+  const [{ data: reelData, error: reelError }, productResult] = await Promise.all([
     supabase
       .from("product_reels")
       .select("id, product_id, caption, created_at, reel_video_path, thumbnail_path")
@@ -720,10 +762,18 @@ export async function getCreatorManagedProduct(productId: string, userId: string
       .maybeSingle(),
     supabase
       .from("products")
-      .select(PRODUCT_SELECT)
+      .select(PRODUCT_SELECT_WITH_CUSTOMIZATION)
       .eq("id", productId)
       .maybeSingle(),
   ]);
+
+  const { data: productData, error: productError } = productResult.error && isMissingCustomizationColumnError(productResult.error)
+    ? await supabase
+        .from("products")
+        .select(BASE_PRODUCT_SELECT)
+        .eq("id", productId)
+        .maybeSingle()
+    : productResult;
 
   if (reelError || productError || !reelData || !productData) {
     return null;
