@@ -78,7 +78,14 @@ export function ProductLandingHero({ hasPurchased, isFree, product, subtitle }: 
         </div>
 
         <div className="hidden rounded-3xl border border-white/12 bg-black/34 p-3 backdrop-blur-xl sm:block">
-          <ProductMediaPreview product={product} className="rounded-2xl" />
+          <ProductMediaPreview
+            media={{
+              heroImageUrl: customization.heroImage || customization.heroImageUrl,
+              reelUrl: product.reelUrl,
+              thumbnailUrl: product.thumbnailUrl,
+            }}
+            className="rounded-2xl"
+          />
         </div>
       </div>
     </section>

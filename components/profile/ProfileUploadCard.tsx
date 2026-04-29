@@ -51,7 +51,7 @@ export function ProfileUploadCard({
       <div className="flex gap-3 p-3">
         <ProductMediaPreview
           className="w-20 shrink-0 rounded-2xl"
-          media={{ heroImageUrl: landing?.heroImageUrl, reelUrl, thumbnailUrl }}
+          media={{ reelUrl, thumbnailUrl }}
         />
 
         <div className="min-w-0 flex-1 py-1">

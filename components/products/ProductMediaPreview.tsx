@@ -17,7 +17,7 @@ export function ProductMediaPreview({
   media,
   product,
 }: ProductMediaPreviewProps) {
-  const heroImageUrl = product?.customization.heroImage || product?.customization.heroImageUrl || media?.heroImageUrl;
+  const heroImageUrl = media?.heroImageUrl;
   const thumbnailUrl = product?.thumbnailUrl || media?.thumbnailUrl;
   const reelUrl = product?.reelUrl || media?.reelUrl;
   const image = heroImageUrl || thumbnailUrl;

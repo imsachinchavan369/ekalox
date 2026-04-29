@@ -34,6 +34,7 @@ export interface PublicReelFeedItem {
   priceCents?: number;
   currencyCode?: string;
   reelUrl: string | null;
+  thumbnailUrl?: string | null;
   createdAt?: string;
   verificationStatus?: string;
   downloadsCount: number;
@@ -325,6 +326,7 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
                       videoRefs.current[item.productId] = element;
                     }}
                     src={item.reelUrl}
+                    poster={item.thumbnailUrl}
                     muted={!isSoundOn}
                     autoPlay={isActive}
                     onPlay={() => {
@@ -333,6 +335,9 @@ export function PublicReelFeed({ items }: PublicReelFeedProps) {
                       }
                     }}
                   />
+                ) : item.thumbnailUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.thumbnailUrl} alt="" className="h-full w-full object-cover object-center" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-slate-950 p-4 text-center text-sm text-white/55">
                     Reel unavailable right now.
