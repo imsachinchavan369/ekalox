@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ProductPrice } from "@/components/common/ProductPrice";
+import { VerifiedByEkaloxBadge } from "@/components/common/VerifiedByEkaloxBadge";
 import type { ReelProductCard } from "@/lib/uploads/queries";
 
 interface HomeHeroSectionProps {
@@ -11,7 +12,7 @@ export function HomeHeroSection({ product }: HomeHeroSectionProps) {
   if (!product) {
     return (
       <section className="rounded-[1.75rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.24),transparent_34%),#05050a] p-6">
-        <p className="text-sm font-bold text-slate-400">No public products yet.</p>
+        <p className="text-sm font-bold text-slate-400">Premium products coming soon</p>
         <h1 className="mt-3 text-4xl font-black text-white">EKALOX</h1>
       </section>
     );
@@ -33,6 +34,7 @@ export function HomeHeroSection({ product }: HomeHeroSectionProps) {
         <div className="max-w-3xl space-y-5">
           <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-white/14 bg-black/35 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-white backdrop-blur">
             <span className="text-violet-300">{badge}</span>
+            <VerifiedByEkaloxBadge className="border-0 bg-transparent p-0" />
           </div>
           <div>
             <h1 className="max-w-3xl text-4xl font-black leading-none text-white sm:text-5xl lg:text-6xl">

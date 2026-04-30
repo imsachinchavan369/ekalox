@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ProductPrice } from "@/components/common/ProductPrice";
+import { VerifiedByEkaloxBadge } from "@/components/common/VerifiedByEkaloxBadge";
 import { ProductMediaPreview } from "@/components/products/ProductMediaPreview";
 import type { ReelProductCard } from "@/lib/uploads/queries";
 
@@ -21,6 +22,7 @@ export function ProductCardPremium({ product }: ProductCardPremiumProps) {
         </span>
       </div>
       <div className="space-y-3 p-4">
+        <VerifiedByEkaloxBadge />
         <h3 className="line-clamp-2 min-h-[2.25rem] text-base font-black leading-tight text-white">{product.title}</h3>
         <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-3">
           <ProductPrice amount={product.priceAmount} className="truncate text-sm font-black text-white" ctaType={product.ctaType} currency={product.priceCurrency} />

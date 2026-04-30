@@ -592,6 +592,53 @@ export async function getPublicReelFeed(): Promise<ReelProductCard[]> {
   return buildCardsFromRows(supabase, reels, products);
 }
 
+export async function getVerifiedHomeReelFeed(): Promise<ReelProductCard[]> {
+  const supabase = await getSupabaseServerClient();
+
+  const { data: reelsData, error: reelsError } = await supabase
+    .from("product_reels")
+    .select("id, product_id, caption, created_at, reel_video_path, thumbnail_path")
+    .order("created_at", { ascending: false });
+
+  const reels = (reelsData ?? []) as ProductReelRow[];
+
+  if (reelsError || reels.length === 0) {
+    return [];
+  }
+
+  const productIds = Array.from(new Set(reels.map((reel) => reel.product_id)));
+
+  const productsResult = await supabase
+    .from("products")
+    .select(PRODUCT_SELECT_WITH_CUSTOMIZATION)
+    .in("id", productIds)
+    .in("status", PUBLIC_PRODUCT_STATUSES)
+    .eq("visibility", "public")
+    .eq("is_archived", false)
+    .not("moderation_status", "in", "(removed,under_review)")
+    .or("verification_status.eq.verified,is_verified_by_ekalox.eq.true");
+
+  const { data: productsData, error: productsError } = productsResult.error && isMissingCustomizationColumnError(productsResult.error)
+    ? await supabase
+        .from("products")
+        .select(BASE_PRODUCT_SELECT)
+        .in("id", productIds)
+        .in("status", PUBLIC_PRODUCT_STATUSES)
+        .eq("visibility", "public")
+        .eq("is_archived", false)
+        .not("moderation_status", "in", "(removed,under_review)")
+        .or("verification_status.eq.verified,is_verified_by_ekalox.eq.true")
+    : productsResult;
+
+  const products = (productsData ?? []) as ProductRow[];
+
+  if (productsError || products.length === 0) {
+    return [];
+  }
+
+  return buildCardsFromRows(supabase, reels, products);
+}
+
 export async function getPublicReelProductDetail(productId: string): Promise<ReelProductCard | null> {
   const feed = await getPublicReelFeed();
   return feed.find((item) => item.productId === productId) ?? null;
