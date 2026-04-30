@@ -8,6 +8,12 @@ import {
   normalizeCurrency,
   type SupportedCurrency,
 } from "@/lib/utils/currency";
+import {
+  convertDisplayCurrency,
+  getCachedDisplayExchangeRates,
+  loadDisplayExchangeRates,
+  type DisplayExchangeRates,
+} from "@/lib/utils/display-currency";
 
 interface ProductPriceProps {
   amount: number;
@@ -27,12 +33,15 @@ export function ProductPrice({
   displayCurrency,
 }: ProductPriceProps) {
   const [storedCurrency, setStoredCurrency] = useState<SupportedCurrency>(DEFAULT_CURRENCY);
+  const [exchangeRates, setExchangeRates] = useState<DisplayExchangeRates | null>(null);
 
   useEffect(() => {
     setStoredCurrency(normalizeCurrency(window.localStorage.getItem(STORAGE_KEY)));
+    setExchangeRates(getCachedDisplayExchangeRates());
 
     const handleStorage = () => {
       setStoredCurrency(normalizeCurrency(window.localStorage.getItem(STORAGE_KEY)));
+      setExchangeRates(getCachedDisplayExchangeRates());
     };
 
     window.addEventListener("storage", handleStorage);
@@ -44,12 +53,34 @@ export function ProductPrice({
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    loadDisplayExchangeRates().then((rates) => {
+      if (isMounted) {
+        setExchangeRates(rates);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const sourceCurrency = normalizeCurrency(currency);
+  const selectedDisplayCurrency = displayCurrency ?? storedCurrency;
+  const convertedAmount =
+    sourceCurrency === selectedDisplayCurrency
+      ? amount
+      : convertDisplayCurrency(amount, sourceCurrency, selectedDisplayCurrency, exchangeRates);
+
   return (
     <span className={className}>
       {formatPriceWithApproximation({
         amount,
-        currency: normalizeCurrency(currency),
-        displayCurrency: displayCurrency ?? storedCurrency,
+        convertedAmount,
+        currency: sourceCurrency,
+        displayCurrency: selectedDisplayCurrency,
         isFree: ctaType === "free",
       })}
     </span>

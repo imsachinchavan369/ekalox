@@ -35,11 +35,11 @@ export function convertCurrency(
 
 export function formatCurrencyAmount(amount: number, currency: SupportedCurrency) {
   const roundedAmount = Number.isFinite(amount) ? amount : 0;
-  const hasDecimals = Math.round(roundedAmount) !== roundedAmount;
+  const maximumFractionDigits = currency === "INR" ? 0 : 2;
 
   return new Intl.NumberFormat(currency === "INR" ? "en-IN" : "en-US", {
     currency,
-    maximumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits,
     minimumFractionDigits: 0,
     style: "currency",
   }).format(roundedAmount);
@@ -47,11 +47,13 @@ export function formatCurrencyAmount(amount: number, currency: SupportedCurrency
 
 export function getPriceParts({
   amount,
+  convertedAmount,
   currency,
   displayCurrency = DEFAULT_CURRENCY,
   isFree = false,
 }: {
   amount: number;
+  convertedAmount?: number | null;
   currency: SupportedCurrency;
   displayCurrency?: SupportedCurrency;
   isFree?: boolean;
@@ -66,7 +68,9 @@ export function getPriceParts({
     return { original, approximate: "" };
   }
 
-  const convertedAmount = convertCurrency(amount, currency, displayCurrency);
+  if (convertedAmount === null || convertedAmount === undefined) {
+    return { original, approximate: "" };
+  }
 
   return {
     original,
@@ -76,16 +80,18 @@ export function getPriceParts({
 
 export function formatPriceWithApproximation({
   amount,
+  convertedAmount,
   currency,
   displayCurrency = DEFAULT_CURRENCY,
   isFree = false,
 }: {
   amount: number;
+  convertedAmount?: number | null;
   currency: SupportedCurrency;
   displayCurrency?: SupportedCurrency;
   isFree?: boolean;
 }) {
-  const parts = getPriceParts({ amount, currency, displayCurrency, isFree });
+  const parts = getPriceParts({ amount, convertedAmount, currency, displayCurrency, isFree });
   return parts.approximate ? `${parts.original} · ${parts.approximate}` : parts.original;
 }
 
