@@ -53,12 +53,17 @@ interface ProductRow {
 interface CreatorProfileRow {
   id: string;
   handle: string;
+  display_name?: string | null;
+  is_verified?: boolean | null;
+  username?: string | null;
   user_id: string;
 }
 
 interface UserRow {
   id: string;
   display_name: string;
+  role?: string | null;
+  username?: string | null;
 }
 
 export interface ReelProductCard {
@@ -144,6 +149,37 @@ async function getAppUserIdForAuthUser(
 
 function getDisplayCreatorName(profile: CreatorProfileRow | undefined, user: UserRow | undefined): string {
   return user?.display_name || profile?.handle || "Creator";
+}
+
+function isEkaloxName(value?: string | null) {
+  return typeof value === "string" && value.trim().toLowerCase() === "ekalox";
+}
+
+function includesVerifiedByEkalox(value?: string | null) {
+  return typeof value === "string" && value.toLowerCase().includes("verified by ekalox");
+}
+
+function isCuratedHomeProduct(
+  product: ProductRow,
+  profile: CreatorProfileRow | undefined,
+  user: UserRow | undefined,
+) {
+  const customization = readCustomization(product);
+
+  return (
+    product.verification_status === "verified" ||
+    product.is_verified_by_ekalox === true ||
+    customization.isVerifiedByEkalox === true ||
+    includesVerifiedByEkalox(product.badge_text) ||
+    includesVerifiedByEkalox(customization.badgeText) ||
+    profile?.is_verified === true ||
+    user?.role === "admin" ||
+    isEkaloxName(profile?.handle) ||
+    isEkaloxName(profile?.username) ||
+    isEkaloxName(profile?.display_name) ||
+    isEkaloxName(user?.username) ||
+    isEkaloxName(user?.display_name)
+  );
 }
 
 function normalizeStoragePath(path: string, bucket: string): string {
@@ -387,7 +423,7 @@ async function getCreatorMaps(
   const profileIds = Array.from(new Set(products.map((product) => product.creator_profile_id)));
   const { data: profilesData } = await supabase
     .from("creator_profiles")
-    .select("id, handle, user_id")
+    .select("id, handle, user_id, display_name, username, is_verified")
     .in("id", profileIds);
 
   const profiles = (profilesData ?? []) as CreatorProfileRow[];
@@ -396,7 +432,7 @@ async function getCreatorMaps(
   const userIds = Array.from(new Set(profiles.map((profile) => profile.user_id)));
   const { data: usersData } = await supabase
     .from("users")
-    .select("id, display_name")
+    .select("id, display_name, username, role")
     .in("id", userIds);
 
   const users = (usersData ?? []) as UserRow[];
@@ -615,8 +651,7 @@ export async function getVerifiedHomeReelFeed(): Promise<ReelProductCard[]> {
     .in("status", PUBLIC_PRODUCT_STATUSES)
     .eq("visibility", "public")
     .eq("is_archived", false)
-    .not("moderation_status", "in", "(removed,under_review)")
-    .or("verification_status.eq.verified,is_verified_by_ekalox.eq.true");
+    .not("moderation_status", "in", "(removed,under_review)");
 
   const { data: productsData, error: productsError } = productsResult.error && isMissingCustomizationColumnError(productsResult.error)
     ? await supabase
@@ -627,7 +662,6 @@ export async function getVerifiedHomeReelFeed(): Promise<ReelProductCard[]> {
         .eq("visibility", "public")
         .eq("is_archived", false)
         .not("moderation_status", "in", "(removed,under_review)")
-        .or("verification_status.eq.verified,is_verified_by_ekalox.eq.true")
     : productsResult;
 
   const products = (productsData ?? []) as ProductRow[];
@@ -636,7 +670,19 @@ export async function getVerifiedHomeReelFeed(): Promise<ReelProductCard[]> {
     return [];
   }
 
-  return buildCardsFromRows(supabase, reels, products);
+  const { profileById, userById } = await getCreatorMaps(supabase, products);
+  const curatedProducts = products.filter((product) => {
+    const profile = profileById.get(product.creator_profile_id);
+    const user = profile ? userById.get(profile.user_id) : undefined;
+
+    return isCuratedHomeProduct(product, profile, user);
+  });
+
+  if (curatedProducts.length === 0) {
+    return [];
+  }
+
+  return buildCardsFromRows(supabase, reels, curatedProducts);
 }
 
 export async function getPublicReelProductDetail(productId: string): Promise<ReelProductCard | null> {
