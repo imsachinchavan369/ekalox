@@ -82,6 +82,8 @@ function normalizeLandingMetadata(value: unknown, userId: string) {
           }];
         }).slice(0, 8)
       : [],
+    isFeatured: landing.isFeatured === true,
+    isVerifiedByEkalox: landing.isVerifiedByEkalox === true,
     pricingBox: Object.keys(pricingBox).length > 0
       ? {
           heading: normalizeText(pricingBox.heading, 90) || null,
@@ -131,7 +133,7 @@ export async function PATCH(request: NextRequest, { params }: CreatorProductRout
   const [{ data: reel }, { data: product }] = await Promise.all([
     supabase
       .from("product_reels")
-      .select("id, reel_video_path, thumbnail_path")
+      .select("id, caption, reel_video_path, thumbnail_path")
       .eq("product_id", productId)
       .eq("creator_user_id", user.id)
       .maybeSingle(),
@@ -162,50 +164,65 @@ export async function PATCH(request: NextRequest, { params }: CreatorProductRout
     return jsonError("Invalid thumbnail path.", 400);
   }
 
-  const [{ error: productError }, { error: reelError }, visibilityHistoryResult] = await Promise.all([
-    supabase
-      .from("products")
-      .update({
-        category: category || "video",
-        description: aboutText,
-        affiliate_enabled: affiliateEnabled,
-        badge_text: landing.badgeText,
-        customization: landing,
-        feature_blocks: landing.featureBlocks,
-        hero_image_url: landing.heroImageUrl,
-        hero_subtitle: landing.heroSubtitle,
-        hero_title: landing.heroTitle,
-        included_items: landing.includedItems,
-        landing_description: landing.landingDescription,
-        preview_gallery: landing.previewGallery,
-        product_theme: landing.productTheme,
-        summary: caption || null,
-        tags,
-        title,
-        visibility,
-      })
-      .eq("id", productId),
-    supabase
-      .from("product_reels")
-      .update({
-        caption: caption || null,
-        ...(reelVideoPath ? { reel_video_path: reelVideoPath } : {}),
-        ...(thumbnailPath ? { thumbnail_path: thumbnailPath } : {}),
-      })
-      .eq("id", reel.id),
-    visibility !== product.visibility
-      ? supabase.from("product_visibility_history").insert({
-          changed_by_user_id: user.id,
-          from_visibility: product.visibility,
-          note: "Creator changed visibility from manage product page.",
-          product_id: productId,
-          to_visibility: visibility,
-        })
-      : Promise.resolve({ error: null }),
-  ]);
+  const { error: productError } = await supabase
+    .from("products")
+    .update({
+      category: category || "video",
+      description: aboutText,
+      affiliate_enabled: affiliateEnabled,
+      badge_text: landing.badgeText,
+      customization: landing,
+      feature_blocks: landing.featureBlocks,
+      hero_image_url: landing.heroImageUrl,
+      hero_subtitle: landing.heroSubtitle,
+      hero_title: landing.heroTitle,
+      included_items: landing.includedItems,
+      landing_description: landing.landingDescription,
+      preview_gallery: landing.previewGallery,
+      product_theme: landing.productTheme,
+      summary: caption || null,
+      tags,
+      title,
+      visibility,
+    })
+    .eq("id", productId);
 
-  if (productError || reelError || visibilityHistoryResult.error) {
-    return jsonError("Product could not be updated.", 400);
+  if (productError) {
+    console.error("Product update failed", productError);
+    return jsonError(productError.message || "Product could not be updated.", 400);
+  }
+
+  const reelPatch = {
+    ...(caption !== (reel.caption || "") ? { caption: caption || null } : {}),
+    ...(reelVideoPath ? { reel_video_path: reelVideoPath } : {}),
+    ...(thumbnailPath ? { thumbnail_path: thumbnailPath } : {}),
+  };
+
+  if (Object.keys(reelPatch).length > 0) {
+    const { error: reelError } = await supabase
+      .from("product_reels")
+      .update(reelPatch)
+      .eq("id", reel.id);
+
+    if (reelError) {
+      console.error("Product reel update failed", reelError);
+      return jsonError(reelError.message || "Product could not be updated.", 400);
+    }
+  }
+
+  if (visibility !== product.visibility) {
+    const { error: visibilityHistoryError } = await supabase.from("product_visibility_history").insert({
+      changed_by_user_id: user.id,
+      from_visibility: product.visibility,
+      note: "Creator changed visibility from manage product page.",
+      product_id: productId,
+      to_visibility: visibility,
+    });
+
+    if (visibilityHistoryError) {
+      console.error("Product visibility history insert failed", visibilityHistoryError);
+      return jsonError(visibilityHistoryError.message || "Product could not be updated.", 400);
+    }
   }
 
   return NextResponse.json({ success: true });

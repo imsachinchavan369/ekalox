@@ -168,15 +168,22 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
         }
       }
 
+      const existingHeroImagePath =
+        initialProduct.customization?.heroImagePath ||
+        initialProduct.customization?.heroImageUrl ||
+        initialProduct.customization?.heroImage ||
+        null;
       const customization: ProductLandingMetadata = {
+        ...initialProduct.customization,
         badgeText: formText(formData, "badgeText"),
         featureBlocks: Array.from({ length: 4 }, (_, index) => ({
           description: formText(formData, `featureDescription${index}`),
           iconName: formText(formData, `featureIcon${index}`),
           title: formText(formData, `featureTitle${index}`),
         })).filter((feature) => feature.title || feature.description),
-        heroImage: newHeroImageUrl || initialProduct.customization?.heroImagePath || null,
-        heroImageUrl: newHeroImageUrl || initialProduct.customization?.heroImagePath || null,
+        heroImage: newHeroImageUrl || existingHeroImagePath,
+        heroImageUrl: newHeroImageUrl || existingHeroImagePath,
+        heroImagePath: newHeroImageUrl || existingHeroImagePath,
         heroSubtitle: formText(formData, "heroSubtitle"),
         heroTitle: formText(formData, "heroTitle"),
         includedItems: Array.from({ length: 6 }, (_, index) => formText(formData, `includedItem${index}`)).filter(Boolean),
@@ -215,8 +222,8 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
 
       setMessage("Product metadata updated.");
       router.refresh();
-    } catch {
-      setMessage("Product could not be updated.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Product could not be updated.");
     } finally {
       setIsSaving(false);
     }
