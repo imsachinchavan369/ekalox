@@ -13,8 +13,23 @@ type R2Folder =
   | `products/${string}/customization/${string}`
   | `reels/${string}/videos/${string}`;
 
+interface R2UploadErrorDetails {
+  bucketConfigured: boolean;
+  fileSize: number;
+  fileType: string;
+  publicBaseUrlConfigured: boolean;
+}
+
 function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status });
+}
+
+function r2UploadErrorJson(message: string, status: number, details: R2UploadErrorDetails) {
+  return NextResponse.json({
+    details,
+    error: "R2_UPLOAD_FAILED",
+    message,
+  }, { status });
 }
 
 function isAllowedR2Path(path: string, userId: string): path is R2Folder {
@@ -49,6 +64,46 @@ function getSafeErrorMessage(error: unknown) {
   return String(error || "Unknown R2 upload error");
 }
 
+function getSafeErrorName(error: unknown) {
+  if (error instanceof Error && error.name) {
+    return error.name;
+  }
+
+  return typeof error === "object" && error !== null && "name" in error
+    ? String((error as { name?: unknown }).name || "UnknownError")
+    : "UnknownError";
+}
+
+function getErrorMetadata(error: unknown) {
+  return typeof error === "object" && error !== null && "$metadata" in error
+    ? (error as { $metadata?: { httpStatusCode?: number; requestId?: string } }).$metadata
+    : undefined;
+}
+
+function getR2EnvStatus() {
+  return {
+    R2_ACCOUNT_ID: Boolean(process.env.R2_ACCOUNT_ID),
+    R2_ACCESS_KEY_ID: Boolean(process.env.R2_ACCESS_KEY_ID),
+    R2_BUCKET_NAME: Boolean(process.env.R2_BUCKET_NAME),
+    R2_PUBLIC_BASE_URL: Boolean(process.env.R2_PUBLIC_BASE_URL),
+    R2_SECRET_ACCESS_KEY: Boolean(process.env.R2_SECRET_ACCESS_KEY),
+  };
+}
+
+function getR2UploadErrorDetails(file: File, fileType: string): R2UploadErrorDetails {
+  return {
+    bucketConfigured: Boolean(process.env.R2_BUCKET_NAME),
+    fileSize: file.size,
+    fileType,
+    publicBaseUrlConfigured: Boolean(process.env.R2_PUBLIC_BASE_URL),
+  };
+}
+
+function hasMissingR2Env() {
+  const envStatus = getR2EnvStatus();
+  return Object.values(envStatus).some((exists) => !exists);
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await getSupabaseServerClient();
   const {
@@ -70,6 +125,7 @@ export async function POST(request: NextRequest) {
 
   const normalizedPath = path.trim().replace(/^\/+/, "");
   const fileType = getUploadContentType(file, normalizedPath);
+  const errorDetails = getR2UploadErrorDetails(file, fileType);
 
   if (!isAllowedR2Path(normalizedPath, user.id)) {
     console.error("[r2] invalid upload path", {
@@ -100,6 +156,18 @@ export async function POST(request: NextRequest) {
     return jsonError("Reel video must be a valid video file.", 400);
   }
 
+  if (hasMissingR2Env()) {
+    console.error("[r2] upload blocked: missing server env", {
+      bucketName: process.env.R2_BUCKET_NAME || null,
+      env: getR2EnvStatus(),
+      fileSize: file.size,
+      fileType,
+      label,
+      path: normalizedPath,
+    });
+    return r2UploadErrorJson("R2 environment variables are missing on server", 500, errorDetails);
+  }
+
   try {
     const url = await uploadFile(file, normalizedPath, {
       contentType: fileType,
@@ -107,11 +175,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ path: normalizedPath, url });
   } catch (error) {
+    const name = getSafeErrorName(error);
     const message = getSafeErrorMessage(error);
-    const metadata = typeof error === "object" && error !== null && "$metadata" in error
-      ? (error as { $metadata?: { httpStatusCode?: number; requestId?: string } }).$metadata
-      : undefined;
+    const metadata = getErrorMetadata(error);
     console.error("[r2] upload failed", {
+      bucketName: process.env.R2_BUCKET_NAME || null,
+      env: getR2EnvStatus(),
+      errorName: name,
       fileSize: file.size,
       fileType,
       label,
@@ -120,6 +190,6 @@ export async function POST(request: NextRequest) {
       statusCode: metadata?.httpStatusCode,
       path: normalizedPath,
     });
-    return jsonError(`${label} upload failed. Please try again.`, 500);
+    return r2UploadErrorJson(message || name, 500, errorDetails);
   }
 }
