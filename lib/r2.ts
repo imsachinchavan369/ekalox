@@ -23,6 +23,8 @@ function getR2Client() {
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
     forcePathStyle: true,
     region: "auto",
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 }
 
@@ -53,6 +55,7 @@ export async function uploadFile(file: File | Blob, path: string, options: Uploa
     new PutObjectCommand({
       Body: body,
       Bucket: requireEnv(process.env.R2_BUCKET_NAME, "R2_BUCKET_NAME"),
+      ContentLength: body.length,
       ContentType: options.contentType,
       Key: objectKey,
     }),
