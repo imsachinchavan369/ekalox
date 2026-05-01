@@ -1,4 +1,5 @@
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 interface UploadOptions {
   contentType?: string;
@@ -26,6 +27,20 @@ function getR2Client() {
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",
   });
+}
+
+export function getR2EnvStatus() {
+  return {
+    R2_ACCOUNT_ID: Boolean(process.env.R2_ACCOUNT_ID),
+    R2_ACCESS_KEY_ID: Boolean(process.env.R2_ACCESS_KEY_ID),
+    R2_BUCKET_NAME: Boolean(process.env.R2_BUCKET_NAME),
+    R2_PUBLIC_BASE_URL: Boolean(process.env.R2_PUBLIC_BASE_URL),
+    R2_SECRET_ACCESS_KEY: Boolean(process.env.R2_SECRET_ACCESS_KEY),
+  };
+}
+
+export function hasMissingR2Env() {
+  return Object.values(getR2EnvStatus()).some((exists) => !exists);
 }
 
 export function normalizeR2Path(path: string) {
@@ -62,6 +77,21 @@ export async function uploadFile(file: File | Blob, path: string, options: Uploa
   );
 
   return generateFileUrl(objectKey);
+}
+
+export async function createPresignedUploadUrl(path: string, options: UploadOptions = {}) {
+  const objectKey = normalizeR2Path(path);
+  const command = new PutObjectCommand({
+    Bucket: requireEnv(process.env.R2_BUCKET_NAME, "R2_BUCKET_NAME"),
+    ContentType: options.contentType,
+    Key: objectKey,
+  });
+
+  return {
+    objectKey,
+    publicUrl: generateFileUrl(objectKey),
+    signedUploadUrl: await getSignedUrl(getR2Client(), command, { expiresIn: 60 * 10 }),
+  };
 }
 
 export async function deleteFile(path: string) {

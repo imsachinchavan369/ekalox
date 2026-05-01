@@ -36,26 +36,19 @@ export async function getProductDownload(productId: string): Promise<ProductDown
 }
 
 export async function triggerBlobDownload(download: ProductDownloadResult) {
-  const fileResponse = await fetch(download.url);
-
-  if (!fileResponse.ok) {
-    throw new Error("File unavailable. Please try again.");
+  if (!download.url) {
+    throw new Error("Download URL missing");
   }
 
-  const blob = await fileResponse.blob();
-  const objectUrl = URL.createObjectURL(blob);
-
-  try {
-    const anchor = document.createElement("a");
-    anchor.href = objectUrl;
-    anchor.download = download.fileName;
-    anchor.style.display = "none";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-  } finally {
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-  }
+  const anchor = document.createElement("a");
+  anchor.href = download.url;
+  anchor.download = download.fileName;
+  anchor.rel = "noopener";
+  anchor.target = "_blank";
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
 }
 
 export async function recordProductDownload(productId: string) {

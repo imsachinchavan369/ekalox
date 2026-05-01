@@ -1,18 +1,19 @@
 export async function uploadFileToR2(file: File, path: string, label = "file") {
-  const formData = new FormData();
-  formData.set("file", file);
-  formData.set("path", path);
-  formData.set("label", label);
-
   let response: Response;
   try {
-    response = await fetch("/api/uploads/r2", {
-      body: formData,
+    response = await fetch("/api/uploads/r2/presign", {
+      body: JSON.stringify({
+        fileSize: file.size,
+        fileType: file.type || "application/octet-stream",
+        label,
+        path,
+      }),
+      headers: { "content-type": "application/json" },
       method: "POST",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to fetch";
-    console.error("[r2] browser upload request failed", {
+    console.error("[r2] browser presign request failed", {
       fileType: file.type || "application/octet-stream",
       label,
       path,
@@ -22,30 +23,61 @@ export async function uploadFileToR2(file: File, path: string, label = "file") {
   }
 
   const payload = (await response.json().catch(() => null)) as {
-    details?: {
-      bucketConfigured?: boolean;
-      fileSize?: number;
-      fileType?: string;
-      publicBaseUrlConfigured?: boolean;
-    };
     error?: string;
     message?: string;
+    contentType?: string;
+    objectKey?: string;
+    publicUrl?: string;
+    signedUploadUrl?: string;
     url?: string;
   } | null;
 
-  if (!response.ok || !payload?.url) {
-    const message = payload?.message || payload?.error || `${label} upload failed. Please try again.`;
-    console.error("[r2] browser upload failed", {
+  if (!response.ok || !payload?.signedUploadUrl || !payload.publicUrl) {
+    const message = payload?.message || payload?.error || "R2 presigned upload failed";
+    console.error("[r2] browser presign failed", {
       fileType: file.type || "application/octet-stream",
       label,
       path,
       status: response.status,
-      details: payload?.details,
-      error: payload?.error || "Missing upload response URL",
+      error: payload?.error || "Missing signed upload URL",
       message,
     });
     throw new Error(message);
   }
 
-  return payload.url;
+  let uploadResponse: Response;
+  try {
+    uploadResponse = await fetch(payload.signedUploadUrl, {
+      body: file,
+      headers: {
+        "content-type": payload.contentType || file.type || "application/octet-stream",
+      },
+      method: "PUT",
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to fetch";
+    console.error("[r2] direct upload request failed", {
+      fileSize: file.size,
+      fileType: file.type || "application/octet-stream",
+      label,
+      objectKey: payload.objectKey,
+      error: message,
+    });
+    throw new Error(`Direct upload to R2 failed: ${message}`);
+  }
+
+  if (!uploadResponse.ok) {
+    const message = `${uploadResponse.status} ${uploadResponse.statusText}`.trim();
+    console.error("[r2] direct upload failed", {
+      fileSize: file.size,
+      fileType: file.type || "application/octet-stream",
+      label,
+      objectKey: payload.objectKey,
+      status: uploadResponse.status,
+      statusText: uploadResponse.statusText,
+    });
+    throw new Error(`Direct upload to R2 failed: ${message}`);
+  }
+
+  return payload.publicUrl;
 }
