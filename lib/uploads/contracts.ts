@@ -1,5 +1,6 @@
 export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
-export const MAX_REEL_VIDEO_DURATION_SECONDS = 60;
+export const MAX_REEL_VIDEO_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
+export const MAX_REEL_VIDEO_DURATION_SECONDS = 30;
 export const UPLOAD_STORAGE_BUCKET =
   process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "ekalox-uploads";
 

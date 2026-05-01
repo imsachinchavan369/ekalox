@@ -13,6 +13,7 @@ import {
   ALLOWED_REEL_MIME_PREFIXES,
   ALLOWED_THUMBNAIL_MIME_PREFIXES,
   MAX_FILE_SIZE_BYTES,
+  MAX_REEL_VIDEO_FILE_SIZE_BYTES,
   MAX_REEL_VIDEO_DURATION_SECONDS,
   hasAllowedMimePrefix,
   type CreateProductMetadataRequest,
@@ -32,15 +33,9 @@ function toFile(value: FormDataEntryValue | null): File | null {
   return value instanceof File && value.size > 0 ? value : null;
 }
 
-const REEL_DURATION_ERROR = "Your reel must be 60 seconds or less. Please upload a shorter demo video.";
+const REEL_SIZE_ERROR = "Video must be under 20MB";
+const REEL_DURATION_ERROR = "Video must be under 30 seconds";
 const VIDEO_DURATION_READ_TIMEOUT_MS = 12000;
-
-function canAllowUnknownVideoDuration(file: File) {
-  const mimeType = file.type.toLowerCase();
-  const fileName = file.name.toLowerCase();
-
-  return mimeType === "video/mp4" || fileName.endsWith(".mp4");
-}
 
 function getVideoDuration(file: File): Promise<number | null> {
   return new Promise((resolve, reject) => {
@@ -112,6 +107,12 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
       return;
     }
 
+    if (file.size > MAX_REEL_VIDEO_FILE_SIZE_BYTES) {
+      input.value = "";
+      setReelVideoError(REEL_SIZE_ERROR);
+      return;
+    }
+
     if (!hasAllowedMimePrefix(file.type || "", ALLOWED_REEL_MIME_PREFIXES)) {
       input.value = "";
       setReelVideoError("Reel video must be a valid video file.");
@@ -123,17 +124,9 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
       if (duration !== null && duration > MAX_REEL_VIDEO_DURATION_SECONDS) {
         input.value = "";
         setReelVideoError(REEL_DURATION_ERROR);
-      } else if (duration === null && canAllowUnknownVideoDuration(file)) {
-        setReelVideoError("Could not confirm video length yet. Upload will continue if this MP4 is 60 seconds or less.");
       }
     } catch {
-      if (canAllowUnknownVideoDuration(file)) {
-        setReelVideoError("Could not confirm video length yet. Upload will continue if this MP4 is 60 seconds or less.");
-        return;
-      }
-
-      input.value = "";
-      setReelVideoError("Could not load this video file. Please choose a valid MP4 video.");
+      return;
     }
   };
 
@@ -181,8 +174,8 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
         return;
       }
 
-      if (reelVideo.size > MAX_FILE_SIZE_BYTES) {
-        router.push("/upload?error=Reel+video+is+too+large.+Max+size+is+50MB");
+      if (reelVideo.size > MAX_REEL_VIDEO_FILE_SIZE_BYTES) {
+        setReelVideoError(REEL_SIZE_ERROR);
         return;
       }
 
@@ -195,11 +188,6 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
 
       if (reelVideoDuration !== null && reelVideoDuration > MAX_REEL_VIDEO_DURATION_SECONDS) {
         setReelVideoError(REEL_DURATION_ERROR);
-        return;
-      }
-
-      if (reelVideoDuration === null && !canAllowUnknownVideoDuration(reelVideo)) {
-        setReelVideoError("Could not load this video file. Please choose a valid MP4 video.");
         return;
       }
 
@@ -434,7 +422,7 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
             onChange={(event) => void handleReelVideoChange(event)}
             className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 file:mr-3 file:rounded-md file:border-0 file:bg-cyan-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-950 hover:file:bg-cyan-400"
           />
-          <span className="block text-xs text-slate-500">Max reel length: 60 seconds</span>
+          <span className="block text-xs text-slate-500">Max reel length: 30 seconds</span>
           {reelVideoError ? (
             <span className="block text-xs font-semibold text-rose-300">{reelVideoError}</span>
           ) : null}

@@ -11,6 +11,7 @@ import {
   ALLOWED_REEL_MIME_PREFIXES,
   ALLOWED_THUMBNAIL_MIME_PREFIXES,
   MAX_FILE_SIZE_BYTES,
+  MAX_REEL_VIDEO_FILE_SIZE_BYTES,
   hasAllowedMimePrefix,
   type ProductLandingMetadata,
 } from "@/lib/uploads/contracts";
@@ -84,8 +85,14 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
       const formData = formRef.current ? new FormData(formRef.current) : new FormData();
 
       if (reelVideoFile) {
-        if (reelVideoFile.size > MAX_FILE_SIZE_BYTES || !hasAllowedMimePrefix(reelVideoFile.type || "", ALLOWED_REEL_MIME_PREFIXES)) {
-          setMessage("Reel preview must be a valid video under 50MB.");
+        if (reelVideoFile.size > MAX_REEL_VIDEO_FILE_SIZE_BYTES) {
+          setMessage("Video must be under 20MB");
+          setIsSaving(false);
+          return;
+        }
+
+        if (!hasAllowedMimePrefix(reelVideoFile.type || "", ALLOWED_REEL_MIME_PREFIXES)) {
+          setMessage("Reel preview must be a valid video file.");
           setIsSaving(false);
           return;
         }
