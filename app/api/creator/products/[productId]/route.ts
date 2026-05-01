@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getR2ObjectKeyFromUrl } from "@/lib/r2";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { UPLOAD_STORAGE_BUCKET } from "@/lib/uploads/contracts";
 
 interface CreatorProductRouteContext {
   params: Promise<{ productId: string }>;
@@ -14,8 +16,41 @@ function normalizeText(value: unknown, maxLength: number) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 }
 
-function isUserStoragePath(path: string, userId: string, folder: "reels" | "thumbnails") {
-  return path.startsWith(`${userId}/${folder}/`) && !path.includes("..") && !path.includes("//");
+function getStorageKey(reference: string) {
+  const trimmed = reference.trim();
+  const r2Key = getR2ObjectKeyFromUrl(trimmed);
+
+  if (r2Key) {
+    return r2Key;
+  }
+
+  return trimmed
+    .split("?")[0]
+    .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\//, "")
+    .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\//, "")
+    .replace(new RegExp(`^${UPLOAD_STORAGE_BUCKET}/`), "")
+    .replace(/^\/+/, "");
+}
+
+function isUserStoragePath(reference: string, userId: string, folder: "reels" | "thumbnails" | "customization") {
+  const key = getStorageKey(reference);
+
+  if (!key || key.includes("..") || key.includes("//")) {
+    return false;
+  }
+
+  const r2Prefixes = {
+    customization: `products/${userId}/customization/`,
+    reels: `reels/${userId}/videos/`,
+    thumbnails: `products/${userId}/thumbnails/`,
+  };
+  const legacyPrefixes = {
+    customization: `${userId}/thumbnails/`,
+    reels: `${userId}/reels/`,
+    thumbnails: `${userId}/thumbnails/`,
+  };
+
+  return key.startsWith(r2Prefixes[folder]) || key.startsWith(legacyPrefixes[folder]);
 }
 
 function normalizeLandingMetadata(value: unknown, userId: string) {
@@ -47,8 +82,8 @@ function normalizeLandingMetadata(value: unknown, userId: string) {
             : [];
         }).slice(0, 8)
       : [],
-    heroImage: heroImageUrl && isUserStoragePath(heroImageUrl, userId, "thumbnails") ? heroImageUrl : null,
-    heroImageUrl: heroImageUrl && isUserStoragePath(heroImageUrl, userId, "thumbnails") ? heroImageUrl : null,
+    heroImage: heroImageUrl && isUserStoragePath(heroImageUrl, userId, "customization") ? heroImageUrl : null,
+    heroImageUrl: heroImageUrl && isUserStoragePath(heroImageUrl, userId, "customization") ? heroImageUrl : null,
     heroSubtitle: normalizeText(landing.heroSubtitle, 180) || null,
     heroTitle: normalizeText(landing.heroTitle, 120) || null,
     includedItems: Array.isArray(includesInput)
@@ -77,7 +112,7 @@ function normalizeLandingMetadata(value: unknown, userId: string) {
           return [{
             description: normalizeText(record.description, 180),
             displayOrder: Number(record.displayOrder) || index + 1,
-            imageUrl: imageUrl && isUserStoragePath(imageUrl, userId, "thumbnails") ? imageUrl : null,
+            imageUrl: imageUrl && isUserStoragePath(imageUrl, userId, "customization") ? imageUrl : null,
             title: title || `Preview ${index + 1}`,
           }];
         }).slice(0, 8)

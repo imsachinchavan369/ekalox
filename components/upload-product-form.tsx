@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { PriceBreakdown } from "@/components/upload/PriceBreakdown";
+import { uploadFileToR2 } from "@/lib/r2-client";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { CATEGORY_OPTIONS } from "@/lib/constants/categories";
 import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES, normalizeCurrency } from "@/lib/utils/currency";
@@ -13,7 +14,6 @@ import {
   ALLOWED_THUMBNAIL_MIME_PREFIXES,
   MAX_FILE_SIZE_BYTES,
   MAX_REEL_VIDEO_DURATION_SECONDS,
-  UPLOAD_STORAGE_BUCKET,
   hasAllowedMimePrefix,
   type CreateProductMetadataRequest,
 } from "@/lib/uploads/contracts";
@@ -192,55 +192,22 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
       }
 
       const sanitizeName = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const reelVideoPath = `${user.id}/reels/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(reelVideo.name)}`;
-      const downloadFilePath = `${user.id}/downloads/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(downloadFile.name)}`;
+      const reelVideoPath = `reels/${user.id}/videos/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(reelVideo.name)}`;
+      const downloadFilePath = `products/${user.id}/downloads/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(downloadFile.name)}`;
       const thumbnailPath = thumbnailFile
-        ? `${user.id}/thumbnails/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(thumbnailFile.name)}`
+        ? `products/${user.id}/thumbnails/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(thumbnailFile.name)}`
         : null;
-      const cleanupPaths: string[] = [reelVideoPath];
       setUploadStatus("Uploading reel video...");
 
-      const { error: reelUploadError } = await supabase.storage.from(UPLOAD_STORAGE_BUCKET).upload(reelVideoPath, reelVideo, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: reelVideo.type || "video/mp4",
-      });
-
-      if (reelUploadError) {
-        router.push(`/upload?error=${encodeURIComponent(reelUploadError.message)}`);
-        return;
-      }
+      const reelVideoUrl = await uploadFileToR2(reelVideo, reelVideoPath);
 
       setUploadStatus("Uploading product file...");
-      const { error: downloadUploadError } = await supabase.storage.from(UPLOAD_STORAGE_BUCKET).upload(downloadFilePath, downloadFile, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: downloadFile.type || "application/octet-stream",
-      });
+      const downloadFileUrl = await uploadFileToR2(downloadFile, downloadFilePath);
 
-      if (downloadUploadError) {
-        await supabase.storage.from(UPLOAD_STORAGE_BUCKET).remove(cleanupPaths);
-        router.push(`/upload?error=${encodeURIComponent(downloadUploadError.message)}`);
-        return;
-      }
-
-      cleanupPaths.push(downloadFilePath);
-
+      let thumbnailUrl: string | null = null;
       if (thumbnailFile && thumbnailPath) {
         setUploadStatus("Uploading thumbnail...");
-        const { error: thumbnailUploadError } = await supabase.storage.from(UPLOAD_STORAGE_BUCKET).upload(thumbnailPath, thumbnailFile, {
-          cacheControl: "3600",
-          upsert: false,
-          contentType: thumbnailFile.type || "image/jpeg",
-        });
-
-        if (thumbnailUploadError) {
-          await supabase.storage.from(UPLOAD_STORAGE_BUCKET).remove(cleanupPaths);
-          router.push(`/upload?error=${encodeURIComponent(thumbnailUploadError.message)}`);
-          return;
-        }
-
-        cleanupPaths.push(thumbnailPath);
+        thumbnailUrl = await uploadFileToR2(thumbnailFile, thumbnailPath);
       }
 
       setUploadStatus("Saving product metadata...");
@@ -251,11 +218,11 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
         productType: isFree ? "free" : "paid",
         priceAmount,
         priceCurrency,
-        reelVideoPath,
-        downloadFilePath,
+        reelVideoPath: reelVideoUrl,
+        downloadFilePath: downloadFileUrl,
         downloadOriginalName: downloadFile.name,
         downloadMimeType: downloadFile.type || "application/octet-stream",
-        thumbnailPath,
+        thumbnailPath: thumbnailUrl,
       };
 
       const metadataResponse = await fetch("/api/uploads/product", {
@@ -272,7 +239,6 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
 
       if (!metadataResponse.ok) {
         const errorMessage = metadataPayload?.error || "Product creation failed";
-        await supabase.storage.from(UPLOAD_STORAGE_BUCKET).remove(cleanupPaths);
         router.push(`/upload?error=${encodeURIComponent(errorMessage)}`);
         return;
       }

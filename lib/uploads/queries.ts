@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { generateFileUrl, getR2ObjectKeyFromUrl } from "@/lib/r2";
 import {
   UPLOAD_STORAGE_BUCKET,
   type ProductExtraSection,
@@ -189,7 +190,7 @@ function normalizeStoragePath(path: string, bucket: string): string {
     return "";
   }
 
-  let normalized = trimmed.replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\//, "");
+  let normalized = trimmed.split("?")[0].replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\//, "");
   normalized = normalized.replace(/^https?:\/\/[^/]+\/storage\/v1\/object\//, "");
   normalized = normalized.replace(new RegExp(`^${bucket}/`), "");
   normalized = normalized.replace(/^\/+/, "");
@@ -197,20 +198,43 @@ function normalizeStoragePath(path: string, bucket: string): string {
   return normalized;
 }
 
+function isHttpUrl(value: string) {
+  return /^https?:\/\//i.test(value);
+}
+
+function isR2ObjectKey(value: string) {
+  return value.startsWith("products/") || value.startsWith("reels/");
+}
+
 async function getSignedReelUrl(
   supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
   bucket: string | undefined,
   rawPath: string,
 ): Promise<string | null> {
+  const trimmed = rawPath.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const r2Key = getR2ObjectKeyFromUrl(trimmed);
+  if (r2Key) {
+    return trimmed;
+  }
+
+  if (isHttpUrl(trimmed) && !trimmed.includes("/storage/v1/object/")) {
+    return trimmed;
+  }
+
+  if (isR2ObjectKey(trimmed)) {
+    return generateFileUrl(trimmed);
+  }
+
   if (!bucket) {
     return null;
   }
 
-  const normalizedPath = normalizeStoragePath(rawPath, bucket);
-
-  if (!normalizedPath) {
-    return null;
-  }
+  const normalizedPath = normalizeStoragePath(trimmed, bucket);
 
   const { data: signedUrlData, error: signedUrlError } = await supabase
     .storage

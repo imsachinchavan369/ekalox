@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { generateFileUrl, getR2ObjectKeyFromUrl } from "@/lib/r2";
 import { UPLOAD_STORAGE_BUCKET } from "@/lib/uploads/contracts";
 import { getCreatorManagedProduct, type ReelProductCard } from "@/lib/uploads/queries";
 
@@ -73,12 +74,22 @@ export interface AdminDashboardData {
 }
 
 function normalizeStoragePath(path: string, bucket: string) {
-  return path.replace(new RegExp(`^${bucket}/`), "").replace(/^\/+/, "");
+  return path.split("?")[0].replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\//, "").replace(new RegExp(`^${bucket}/`), "").replace(/^\/+/, "");
 }
 
 async function getSignedAdminFileUrl(storagePath: string | null) {
   if (!storagePath) {
     return null;
+  }
+
+  const trimmed = storagePath.trim();
+  const r2Key = getR2ObjectKeyFromUrl(trimmed);
+  if (r2Key || (/^https?:\/\//i.test(trimmed) && !trimmed.includes("/storage/v1/object/"))) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("products/") || trimmed.startsWith("reels/")) {
+    return generateFileUrl(trimmed);
   }
 
   const supabase = await getSupabaseServerClient();

@@ -1,20 +1,19 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ProductVisibilityToggle } from "@/components/creator/ProductVisibilityToggle";
 import { ProductLandingEditorFields } from "@/components/products/ProductLandingEditorFields";
 import { calculateAffiliateEarnings } from "@/lib/earnings/calculateEarnings";
+import { uploadFileToR2 } from "@/lib/r2-client";
 import {
   ALLOWED_REEL_MIME_PREFIXES,
   ALLOWED_THUMBNAIL_MIME_PREFIXES,
   MAX_FILE_SIZE_BYTES,
-  UPLOAD_STORAGE_BUCKET,
   hasAllowedMimePrefix,
   type ProductLandingMetadata,
 } from "@/lib/uploads/contracts";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 interface ManageProductFormProps {
   initialProduct: {
@@ -54,7 +53,6 @@ function formFile(formData: FormData, name: string) {
 
 export function ManageProductForm({ initialProduct, userId }: ManageProductFormProps) {
   const router = useRouter();
-  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const formRef = useRef<HTMLFormElement | null>(null);
   const [title, setTitle] = useState(initialProduct.title);
   const [caption, setCaption] = useState(initialProduct.caption || "");
@@ -92,18 +90,10 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
           return;
         }
 
-        reelVideoPath = `${userId}/reels/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(reelVideoFile.name)}`;
-        const { error } = await supabase.storage.from(UPLOAD_STORAGE_BUCKET).upload(reelVideoPath, reelVideoFile, {
-          cacheControl: "3600",
-          contentType: reelVideoFile.type || "video/mp4",
-          upsert: false,
-        });
-
-        if (error) {
-          setMessage(error.message);
-          setIsSaving(false);
-          return;
-        }
+        reelVideoPath = await uploadFileToR2(
+          reelVideoFile,
+          `reels/${userId}/videos/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(reelVideoFile.name)}`,
+        );
       }
 
       if (thumbnailFile) {
@@ -113,18 +103,10 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
           return;
         }
 
-        thumbnailPath = `${userId}/thumbnails/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(thumbnailFile.name)}`;
-        const { error } = await supabase.storage.from(UPLOAD_STORAGE_BUCKET).upload(thumbnailPath, thumbnailFile, {
-          cacheControl: "3600",
-          contentType: thumbnailFile.type || "image/jpeg",
-          upsert: false,
-        });
-
-        if (error) {
-          setMessage(error.message);
-          setIsSaving(false);
-          return;
-        }
+        thumbnailPath = await uploadFileToR2(
+          thumbnailFile,
+          `products/${userId}/thumbnails/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(thumbnailFile.name)}`,
+        );
       }
 
       const uploadLandingImage = async (file: File | null, label: string) => {
@@ -136,18 +118,10 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
           throw new Error(`${label} must be a valid image under 50MB.`);
         }
 
-        const imagePath = `${userId}/thumbnails/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(file.name)}`;
-        const { error } = await supabase.storage.from(UPLOAD_STORAGE_BUCKET).upload(imagePath, file, {
-          cacheControl: "3600",
-          contentType: file.type || "image/jpeg",
-          upsert: false,
-        });
-
-        if (error) {
-          throw new Error(error.message);
-        }
-
-        return imagePath;
+        return uploadFileToR2(
+          file,
+          `products/${userId}/customization/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(file.name)}`,
+        );
       };
 
       const newHeroImageUrl = await uploadLandingImage(formFile(formData, "heroImage"), "Hero image");

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { generateFileUrl, getR2ObjectKeyFromUrl } from "@/lib/r2";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { UPLOAD_STORAGE_BUCKET } from "@/lib/uploads/contracts";
 
@@ -9,6 +10,23 @@ interface DownloadRouteContext {
 
 function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status });
+}
+
+function isHttpUrl(value: string) {
+  return /^https?:\/\//i.test(value);
+}
+
+function isR2ObjectKey(value: string) {
+  return value.startsWith("products/") || value.startsWith("reels/");
+}
+
+function normalizeSupabaseStoragePath(path: string) {
+  return path
+    .split("?")[0]
+    .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\//, "")
+    .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\//, "")
+    .replace(new RegExp(`^${UPLOAD_STORAGE_BUCKET}/`), "")
+    .replace(/^\/+/, "");
 }
 
 export async function POST(_request: Request, { params }: DownloadRouteContext) {
@@ -77,10 +95,25 @@ export async function POST(_request: Request, { params }: DownloadRouteContext) 
     return jsonError("No downloadable file is available for this product yet.", 404);
   }
 
+  const storagePath = String(file.storage_path || "").trim();
+  const r2Key = getR2ObjectKeyFromUrl(storagePath);
+  const downloadUrl = r2Key || (isHttpUrl(storagePath) && !storagePath.includes("/storage/v1/object/"))
+    ? storagePath
+    : isR2ObjectKey(storagePath)
+      ? generateFileUrl(storagePath)
+      : null;
+
+  if (downloadUrl) {
+    return NextResponse.json({
+      fileName: file.original_name || "ekalox-download",
+      url: downloadUrl,
+    });
+  }
+
   const { data: signedUrlData, error: signedUrlError } = await supabase
     .storage
     .from(UPLOAD_STORAGE_BUCKET)
-    .createSignedUrl(file.storage_path, 60);
+    .createSignedUrl(normalizeSupabaseStoragePath(storagePath), 60);
 
   if (signedUrlError || !signedUrlData?.signedUrl) {
     return jsonError("File unavailable. Please try again.", 500);
