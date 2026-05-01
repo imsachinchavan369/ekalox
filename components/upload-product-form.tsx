@@ -33,29 +33,64 @@ function toFile(value: FormDataEntryValue | null): File | null {
 }
 
 const REEL_DURATION_ERROR = "Your reel must be 60 seconds or less. Please upload a shorter demo video.";
+const VIDEO_DURATION_READ_TIMEOUT_MS = 12000;
 
-function getVideoDuration(file: File): Promise<number> {
+function canAllowUnknownVideoDuration(file: File) {
+  const mimeType = file.type.toLowerCase();
+  const fileName = file.name.toLowerCase();
+
+  return mimeType === "video/mp4" || fileName.endsWith(".mp4");
+}
+
+function getVideoDuration(file: File): Promise<number | null> {
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
     const objectUrl = URL.createObjectURL(file);
+    let settled = false;
 
     const cleanup = () => {
+      window.clearTimeout(timeoutId);
       URL.revokeObjectURL(objectUrl);
       video.removeAttribute("src");
       video.load();
     };
 
+    const settle = (duration: number | null) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanup();
+      resolve(duration);
+    };
+
+    const fail = (error: Error) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      settle(null);
+    }, VIDEO_DURATION_READ_TIMEOUT_MS);
+
+    video.muted = true;
+    video.playsInline = true;
     video.preload = "metadata";
     video.onloadedmetadata = () => {
       const duration = video.duration;
-      cleanup();
-      Number.isFinite(duration) ? resolve(duration) : reject(new Error("Invalid video duration"));
+      Number.isFinite(duration) && duration > 0 ? settle(duration) : settle(null);
     };
     video.onerror = () => {
-      cleanup();
-      reject(new Error("Could not read video duration"));
+      fail(new Error("Could not load video metadata"));
     };
     video.src = objectUrl;
+    video.load();
   });
 }
 
@@ -77,16 +112,28 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
       return;
     }
 
+    if (!hasAllowedMimePrefix(file.type || "", ALLOWED_REEL_MIME_PREFIXES)) {
+      input.value = "";
+      setReelVideoError("Reel video must be a valid video file.");
+      return;
+    }
+
     try {
       const duration = await getVideoDuration(file);
-
-      if (duration > MAX_REEL_VIDEO_DURATION_SECONDS) {
+      if (duration !== null && duration > MAX_REEL_VIDEO_DURATION_SECONDS) {
         input.value = "";
         setReelVideoError(REEL_DURATION_ERROR);
+      } else if (duration === null && canAllowUnknownVideoDuration(file)) {
+        setReelVideoError("Could not confirm video length yet. Upload will continue if this MP4 is 60 seconds or less.");
       }
     } catch {
+      if (canAllowUnknownVideoDuration(file)) {
+        setReelVideoError("Could not confirm video length yet. Upload will continue if this MP4 is 60 seconds or less.");
+        return;
+      }
+
       input.value = "";
-      setReelVideoError("Could not read this video's duration. Please choose another video file.");
+      setReelVideoError("Could not load this video file. Please choose a valid MP4 video.");
     }
   };
 
@@ -146,13 +193,13 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
 
       const reelVideoDuration = await getVideoDuration(reelVideo).catch(() => null);
 
-      if (reelVideoDuration === null) {
-        setReelVideoError("Could not read this video's duration. Please choose another video file.");
+      if (reelVideoDuration !== null && reelVideoDuration > MAX_REEL_VIDEO_DURATION_SECONDS) {
+        setReelVideoError(REEL_DURATION_ERROR);
         return;
       }
 
-      if (reelVideoDuration > MAX_REEL_VIDEO_DURATION_SECONDS) {
-        setReelVideoError(REEL_DURATION_ERROR);
+      if (reelVideoDuration === null && !canAllowUnknownVideoDuration(reelVideo)) {
+        setReelVideoError("Could not load this video file. Please choose a valid MP4 video.");
         return;
       }
 
@@ -199,15 +246,15 @@ export function UploadProductForm({ initialSuccess, initialError, initialProduct
         : null;
       setUploadStatus("Uploading reel video...");
 
-      const reelVideoUrl = await uploadFileToR2(reelVideo, reelVideoPath);
+      const reelVideoUrl = await uploadFileToR2(reelVideo, reelVideoPath, "reel video");
 
       setUploadStatus("Uploading product file...");
-      const downloadFileUrl = await uploadFileToR2(downloadFile, downloadFilePath);
+      const downloadFileUrl = await uploadFileToR2(downloadFile, downloadFilePath, "downloadable product file");
 
       let thumbnailUrl: string | null = null;
       if (thumbnailFile && thumbnailPath) {
         setUploadStatus("Uploading thumbnail...");
-        thumbnailUrl = await uploadFileToR2(thumbnailFile, thumbnailPath);
+        thumbnailUrl = await uploadFileToR2(thumbnailFile, thumbnailPath, "thumbnail");
       }
 
       setUploadStatus("Saving product metadata...");

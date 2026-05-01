@@ -93,6 +93,7 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
         reelVideoPath = await uploadFileToR2(
           reelVideoFile,
           `reels/${userId}/videos/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(reelVideoFile.name)}`,
+          "reel preview",
         );
       }
 
@@ -106,6 +107,7 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
         thumbnailPath = await uploadFileToR2(
           thumbnailFile,
           `products/${userId}/thumbnails/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(thumbnailFile.name)}`,
+          "thumbnail",
         );
       }
 
@@ -121,6 +123,7 @@ export function ManageProductForm({ initialProduct, userId }: ManageProductFormP
         return uploadFileToR2(
           file,
           `products/${userId}/customization/${Date.now()}-${crypto.randomUUID()}-${sanitizeName(file.name)}`,
+          label,
         );
       };
 

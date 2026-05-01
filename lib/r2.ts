@@ -4,12 +4,6 @@ interface UploadOptions {
   contentType?: string;
 }
 
-const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
-const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
-const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
-const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
-const R2_PUBLIC_BASE_URL = process.env.R2_PUBLIC_BASE_URL;
-
 function requireEnv(value: string | undefined, name: string): string {
   if (!value) {
     throw new Error(`${name} is required for Cloudflare R2 storage.`);
@@ -19,14 +13,15 @@ function requireEnv(value: string | undefined, name: string): string {
 }
 
 function getR2Client() {
-  const accountId = requireEnv(R2_ACCOUNT_ID, "R2_ACCOUNT_ID");
+  const accountId = requireEnv(process.env.R2_ACCOUNT_ID, "R2_ACCOUNT_ID");
 
   return new S3Client({
     credentials: {
-      accessKeyId: requireEnv(R2_ACCESS_KEY_ID, "R2_ACCESS_KEY_ID"),
-      secretAccessKey: requireEnv(R2_SECRET_ACCESS_KEY, "R2_SECRET_ACCESS_KEY"),
+      accessKeyId: requireEnv(process.env.R2_ACCESS_KEY_ID, "R2_ACCESS_KEY_ID"),
+      secretAccessKey: requireEnv(process.env.R2_SECRET_ACCESS_KEY, "R2_SECRET_ACCESS_KEY"),
     },
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    forcePathStyle: true,
     region: "auto",
   });
 }
@@ -36,12 +31,12 @@ export function normalizeR2Path(path: string) {
 }
 
 export function generateFileUrl(path: string) {
-  const baseUrl = requireEnv(R2_PUBLIC_BASE_URL, "R2_PUBLIC_BASE_URL").replace(/\/+$/, "");
+  const baseUrl = requireEnv(process.env.R2_PUBLIC_BASE_URL, "R2_PUBLIC_BASE_URL").replace(/\/+$/, "");
   return `${baseUrl}/${normalizeR2Path(path)}`;
 }
 
 export function getR2ObjectKeyFromUrl(url: string) {
-  const baseUrl = R2_PUBLIC_BASE_URL?.replace(/\/+$/, "");
+  const baseUrl = process.env.R2_PUBLIC_BASE_URL?.replace(/\/+$/, "");
 
   if (!baseUrl || !url.startsWith(`${baseUrl}/`)) {
     return null;
@@ -57,7 +52,7 @@ export async function uploadFile(file: File | Blob, path: string, options: Uploa
   await getR2Client().send(
     new PutObjectCommand({
       Body: body,
-      Bucket: requireEnv(R2_BUCKET_NAME, "R2_BUCKET_NAME"),
+      Bucket: requireEnv(process.env.R2_BUCKET_NAME, "R2_BUCKET_NAME"),
       ContentType: options.contentType,
       Key: objectKey,
     }),
@@ -71,7 +66,7 @@ export async function deleteFile(path: string) {
 
   await getR2Client().send(
     new DeleteObjectCommand({
-      Bucket: requireEnv(R2_BUCKET_NAME, "R2_BUCKET_NAME"),
+      Bucket: requireEnv(process.env.R2_BUCKET_NAME, "R2_BUCKET_NAME"),
       Key: objectKey,
     }),
   );

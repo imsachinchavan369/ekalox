@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { uploadFile } from "@/lib/r2";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
+export const runtime = "nodejs";
+
 type R2Folder =
   | `products/${string}/downloads/${string}`
   | `products/${string}/thumbnails/${string}`
@@ -43,6 +45,7 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData().catch(() => null);
   const file = formData?.get("file");
   const path = formData?.get("path");
+  const label = typeof formData?.get("label") === "string" ? String(formData.get("label")).slice(0, 80) : "file";
 
   if (!(file instanceof File) || typeof path !== "string") {
     return jsonError("Missing file upload payload.", 400);
@@ -51,6 +54,11 @@ export async function POST(request: NextRequest) {
   const normalizedPath = path.trim().replace(/^\/+/, "");
 
   if (!isAllowedR2Path(normalizedPath, user.id)) {
+    console.error("[r2] invalid upload path", {
+      fileType: file.type || "application/octet-stream",
+      label,
+      path: normalizedPath,
+    });
     return jsonError("Invalid R2 upload path.", 400);
   }
 
@@ -61,7 +69,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ path: normalizedPath, url });
   } catch (error) {
-    console.error("[r2] upload failed", error);
-    return jsonError(error instanceof Error ? error.message : "Upload failed. Please try again.", 500);
+    const message = error instanceof Error ? error.message : "Unknown R2 upload error";
+    console.error("[r2] upload failed", {
+      fileType: file.type || "application/octet-stream",
+      label,
+      message,
+      path: normalizedPath,
+    });
+    return jsonError(`${label} upload failed. Please try again.`, 500);
   }
 }
